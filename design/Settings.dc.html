@@ -1,0 +1,91 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    :root{
+      --bg:#FAFAF9; --surface:#FFFFFF; --border:#E5E5E3; --text:#1A1A19; --text-2:#6B6B68;
+      --accent:#0F766E; --accent-ink:#FFFFFF; --warn-bg:#FEF3C7; --warn-text:#B45309; --knob:#FFFFFF;
+    }
+    @media (prefers-color-scheme: dark){
+      :root:not([data-theme="light"]){
+        --bg:#111113; --surface:#1B1B1F; --border:#2A2A2E; --text:#F2F2F0; --text-2:#9A9A97;
+        --accent:#2DD4BF; --accent-ink:#08312D; --warn-bg:#3F2E0A; --warn-text:#FBBF24; --knob:#FFFFFF;
+      }
+    }
+    :root[data-theme="dark"]{
+      --bg:#111113; --surface:#1B1B1F; --border:#2A2A2E; --text:#F2F2F0; --text-2:#9A9A97;
+      --accent:#2DD4BF; --accent-ink:#08312D; --warn-bg:#3F2E0A; --warn-text:#FBBF24; --knob:#FFFFFF;
+    }
+    *{box-sizing:border-box;}
+    html,body{margin:0;height:100%;}
+    body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,'Segoe UI',sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;}
+    .h2{font-family:'Manrope',sans-serif;font-weight:700;font-size:16px;margin:0;}
+    .muted{color:var(--text-2);font-size:12px;line-height:1.5;}
+    .field{display:flex;flex-direction:column;gap:6px;}
+    .field span{font-size:12px;font-weight:600;color:var(--text-2);}
+    .field input{height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;background:var(--surface);color:var(--text);font-family:'Inter',sans-serif;font-size:13.5px;}
+    .row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px;border:1px solid var(--border);border-radius:12px;background:var(--surface);}
+    .btn-ghost{height:44px;border:1px solid var(--border);border-radius:10px;background:transparent;color:var(--text);font-family:'Inter',sans-serif;font-weight:600;font-size:14px;cursor:pointer;width:100%;}
+    .sec-label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-2);}
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+</helmet>
+<div style="min-height:100%;background:var(--bg);">
+  <div style="display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--border);">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text)" stroke-width="2"><path d="M15 18l-6-6 6-6"></path></svg>
+    <span class="h2">Settings</span>
+  </div>
+
+  <div style="padding:18px;display:flex;flex-direction:column;gap:22px;">
+
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <span class="sec-label">Notifications</span>
+      <div class="row">
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <span style="font-size:13.5px;font-weight:600;">Warranty expiration banner</span>
+          <span class="muted">Shown on the dashboard when a warranty expires this month.</span>
+        </div>
+        <div onClick="{{toggle}}" style="width:44px;height:26px;border-radius:13px;display:flex;align-items:center;padding:3px;cursor:pointer;flex-shrink:0;transition:background .15s ease;{{trackStyle}}">
+          <div style="width:20px;height:20px;border-radius:50%;background:var(--knob);box-shadow:0 1px 2px rgba(0,0,0,.25);"></div>
+        </div>
+      </div>
+      <span class="muted">Try it &mdash; this toggle actually switches.</span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <span class="sec-label">Account</span>
+      <label class="field"><span>Current password</span><input type="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"></label>
+      <label class="field"><span>New password</span><input type="password" placeholder="At least 10 characters"></label>
+      <button class="btn-ghost">Update password</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { notifOn: true };
+  }
+  renderVals() {
+    const on = this.state.notifOn ?? true;
+    return {
+      on: on,
+      toggle: () => this.setState({ notifOn: !this.state.notifOn }),
+      trackStyle: on
+        ? 'background:var(--accent);justify-content:flex-end;'
+        : 'background:var(--border);justify-content:flex-start;'
+    };
+  }
+}
+</script>
+</body>
+</html>

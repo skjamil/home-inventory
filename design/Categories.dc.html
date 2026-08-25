@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    :root{
+      --bg:#FAFAF9; --surface:#FFFFFF; --border:#E5E5E3; --text:#1A1A19; --text-2:#6B6B68;
+      --accent:#0F766E; --accent-ink:#FFFFFF; --warn-bg:#FEF3C7; --warn-text:#B45309;
+    }
+    @media (prefers-color-scheme: dark){
+      :root:not([data-theme="light"]){
+        --bg:#111113; --surface:#1B1B1F; --border:#2A2A2E; --text:#F2F2F0; --text-2:#9A9A97;
+        --accent:#2DD4BF; --accent-ink:#08312D; --warn-bg:#3F2E0A; --warn-text:#FBBF24;
+      }
+    }
+    :root[data-theme="dark"]{
+      --bg:#111113; --surface:#1B1B1F; --border:#2A2A2E; --text:#F2F2F0; --text-2:#9A9A97;
+      --accent:#2DD4BF; --accent-ink:#08312D; --warn-bg:#3F2E0A; --warn-text:#FBBF24;
+    }
+    *{box-sizing:border-box;}
+    html,body{margin:0;height:100%;}
+    body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,'Segoe UI',sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;}
+    .h2{font-family:'Manrope',sans-serif;font-weight:700;font-size:16px;margin:0;}
+    .muted{color:var(--text-2);font-size:12px;}
+    .field input{height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;background:var(--surface);color:var(--text);font-family:'Inter',sans-serif;font-size:13.5px;width:100%;}
+    .field input::placeholder{color:var(--text-2);}
+    .cat-row{display:flex;align-items:center;gap:12px;padding:13px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface);}
+    .btn-primary{height:42px;padding:0 16px;border:none;border-radius:8px;background:var(--accent);color:var(--accent-ink);font-family:'Inter',sans-serif;font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap;}
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+</helmet>
+<div style="min-height:100%;background:var(--bg);">
+  <div style="display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--border);">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text)" stroke-width="2"><path d="M15 18l-6-6 6-6"></path></svg>
+    <span class="h2">Categories</span>
+  </div>
+
+  <div style="padding:18px;display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;gap:8px;">
+      <div class="field" style="flex:1;"><input placeholder="Add a category&hellip;"></div>
+      <button class="btn-primary">Add</button>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="cat-row">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6"><rect x="6" y="7" width="12" height="9" rx="2"></rect><path d="M9 7V4M15 7V4M9 20v-2M15 20v-2"></path></svg>
+        <div style="display:flex;flex-direction:column;flex:1;">
+          <span style="font-size:13.5px;font-weight:600;">Electronics</span>
+          <span class="muted">12 items</span>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-2)" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>
+      </div>
+      <div class="cat-row">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6"><path d="M5 11V8a2 2 0 012-2h10a2 2 0 012 2v3"></path><rect x="4" y="11" width="16" height="6" rx="1.5"></rect><path d="M6 17v2M18 17v2"></path></svg>
+        <div style="display:flex;flex-direction:column;flex:1;">
+          <span style="font-size:13.5px;font-weight:600;">Furniture</span>
+          <span class="muted">8 items</span>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-2)" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>
+      </div>
+      <div class="cat-row">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 005.4-5.4l-2.3 2.3-2-2 2.3-2.3z"></path></svg>
+        <div style="display:flex;flex-direction:column;flex:1;">
+          <span style="font-size:13.5px;font-weight:600;">Tools</span>
+          <span class="muted">17 items</span>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-2)" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>
+      </div>
+      <div class="cat-row">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6"><path d="M7 3v6a2 2 0 002 2v10"></path><path d="M7 3v6M9 3v6"></path><path d="M16 3c-1.4 0-2.5 1.6-2.5 4.5S14.6 12 16 12v9"></path></svg>
+        <div style="display:flex;flex-direction:column;flex:1;">
+          <span style="font-size:13.5px;font-weight:600;">Kitchen</span>
+          <span class="muted">34 items</span>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-2)" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>
+      </div>
+      <div class="cat-row">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6"><path d="M3 8l9-5 9 5-9 5-9-5z"></path><path d="M3 8v9l9 5m0-14v14m9-14v9l-9 5"></path></svg>
+        <div style="display:flex;flex-direction:column;flex:1;">
+          <span style="font-size:13.5px;font-weight:600;">Storage</span>
+          <span class="muted">9 items</span>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-2)" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>
+      </div>
+    </div>
+    <p class="muted">Every new account starts with these five categories and can rename, add, or remove from here.</p>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

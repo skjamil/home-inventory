@@ -1,0 +1,36 @@
+{
+  "artboards": [
+    { "file": "Register.dc.html", "x": 0, "y": 140, "w": 390, "h": 760, "title": "Register" },
+    { "file": "VerifyEmail.dc.html", "x": 470, "y": 140, "w": 390, "h": 760, "title": "Verify Email" },
+    { "file": "Login.dc.html", "x": 940, "y": 140, "w": 390, "h": 760, "title": "Login" },
+    { "file": "ForgotPassword.dc.html", "x": 1410, "y": 140, "w": 390, "h": 760, "title": "Forgot Password" },
+    { "file": "ResetPassword.dc.html", "x": 1880, "y": 140, "w": 390, "h": 760, "title": "Reset Password" },
+    { "file": "Main.dc.html", "x": 0, "y": 1040, "w": 390, "h": 760, "title": "Dashboard" },
+    { "file": "ItemList.dc.html", "x": 470, "y": 1040, "w": 390, "h": 760, "title": "Item List" },
+    { "file": "ItemDetail.dc.html", "x": 940, "y": 1040, "w": 390, "h": 760, "title": "Item Detail" },
+    { "file": "ItemForm.dc.html", "x": 1410, "y": 1040, "w": 390, "h": 760, "title": "Item Create / Edit" },
+    { "file": "Categories.dc.html", "x": 1880, "y": 1040, "w": 390, "h": 760, "title": "Categories" },
+    { "file": "Settings.dc.html", "x": 2350, "y": 1040, "w": 390, "h": 760, "title": "Settings" },
+    { "file": "DashboardDesktop.dc.html", "x": 0, "y": 1940, "w": 960, "h": 760, "title": "Dashboard — desktop" },
+    { "file": "ItemListDesktop.dc.html", "x": 1080, "y": 1940, "w": 960, "h": 760, "title": "Item List — desktop" },
+    { "file": "ItemDetailDesktop.dc.html", "x": 2160, "y": 1940, "w": 960, "h": 760, "title": "Item Detail — desktop" }
+  ],
+  "annotations": [
+    { "id": "title", "x": 0, "y": -160, "w": 640, "text": "Home Inventory Manager — application workflow\nStatic screen mockups in flow order (matches docs/DESIGN.md). Notes describe what each step does." },
+    { "id": "register-note", "x": 0, "y": 30, "w": 390, "text": "AUTHENTICATION\n1 · Register — submits email + password. Creates the user (unverified) and their 5 default categories in one transaction, then emails a verification link. Rate limited." },
+    { "id": "verify-note", "x": 470, "y": 30, "w": 390, "text": "2 · Verify Email — reached by opening the emailed link. A valid token sets emailVerified. Invalid or expired shows a resend option instead." },
+    { "id": "login-note", "x": 940, "y": 30, "w": 390, "text": "3 · Login — refused with \"please verify your email\" until step 2 is done. Success opens a database session. Rate limited." },
+    { "id": "forgot-note", "x": 1410, "y": 30, "w": 390, "text": "Branch · Forgot Password — always shows the same confirmation message, whether or not the email is registered. Rate limited." },
+    { "id": "reset-note", "x": 1880, "y": 30, "w": 390, "text": "Branch · Reset Password — reached from the reset email. Success updates the password, invalidates existing sessions, and returns to Login." },
+    { "id": "dashboard-note", "x": 0, "y": 930, "w": 390, "text": "CORE APPLICATION\n4 · Dashboard — entry point after login. Category counts plus a warranty banner, shown only when the Settings toggle is on. Try expanding the banner below." },
+    { "id": "itemlist-note", "x": 470, "y": 930, "w": 390, "text": "5 · Item List — reached from a category card or the warranty banner. Filter by category, search, or jump to expiring items." },
+    { "id": "itemdetail-note", "x": 940, "y": 930, "w": 390, "text": "6 · Item Detail — the full record: fields, photos, receipt, and warranty document." },
+    { "id": "itemform-note", "x": 1410, "y": 930, "w": 390, "text": "7 · Item Create / Edit — one shared form for both. Photos, receipt, and warranty doc are captured by camera or gallery and upload directly to Blob storage." },
+    { "id": "categories-note", "x": 1880, "y": 930, "w": 390, "text": "Dashboard → Categories — add, rename, or delete. New accounts start with the 5 defaults shown here." },
+    { "id": "settings-note", "x": 2350, "y": 930, "w": 390, "text": "Dashboard → Settings — change password, and toggle the warranty banner. The toggle below actually works." },
+    { "id": "responsive-note", "x": 0, "y": 1830, "w": 960, "text": "RESPONSIVE — ≥640px viewports\nSame screens, wider viewport. Per docs/DESIGN.md, content stays in a centered 640px column rather than stretching full-width — only the grids inside it gain columns (3 category cards instead of 2, 2-up item cards, photos beside fields on Item Detail). Forms and lists never sprawl edge-to-edge on a large monitor." },
+    { "id": "itemlist-desktop-note", "x": 1080, "y": 1830, "w": 960, "text": "Item List at ≥640px: the same search/filter bar, item cards reflow from a single column into two." },
+    { "id": "itemdetail-desktop-note", "x": 2160, "y": 1830, "w": 960, "text": "Item Detail at ≥640px: photos + documents move beside the field list instead of stacking above it." }
+  ],
+  "launch": { "view": "canvas" }
+}

@@ -1,0 +1,105 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    :root{
+      --bg:#FAFAF9; --surface:#FFFFFF; --border:#E5E5E3; --text:#1A1A19; --text-2:#6B6B68;
+      --accent:#0F766E; --accent-ink:#FFFFFF; --warn-bg:#FEF3C7; --warn-text:#B45309;
+    }
+    @media (prefers-color-scheme: dark){
+      :root:not([data-theme="light"]){
+        --bg:#111113; --surface:#1B1B1F; --border:#2A2A2E; --text:#F2F2F0; --text-2:#9A9A97;
+        --accent:#2DD4BF; --accent-ink:#08312D; --warn-bg:#3F2E0A; --warn-text:#FBBF24;
+      }
+    }
+    :root[data-theme="dark"]{
+      --bg:#111113; --surface:#1B1B1F; --border:#2A2A2E; --text:#F2F2F0; --text-2:#9A9A97;
+      --accent:#2DD4BF; --accent-ink:#08312D; --warn-bg:#3F2E0A; --warn-text:#FBBF24;
+    }
+    *{box-sizing:border-box;}
+    html,body{margin:0;height:100%;}
+    body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,'Segoe UI',sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;}
+    .h2{font-family:'Manrope',sans-serif;font-weight:700;font-size:16px;margin:0;}
+    .muted{color:var(--text-2);font-size:11.5px;}
+    .chip{height:34px;padding:0 12px;border-radius:17px;border:1px solid var(--border);display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--text);background:var(--surface);white-space:nowrap;}
+    .chip.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
+    .item-card{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface);}
+    .thumb{width:48px;height:48px;border-radius:8px;background:var(--border);flex-shrink:0;}
+    .fab{position:absolute;right:20px;bottom:22px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.18);}
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+</helmet>
+<div style="min-height:100%;position:relative;background:var(--bg);">
+  <div style="display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--border);">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text)" stroke-width="2"><path d="M15 18l-6-6 6-6"></path></svg>
+    <span class="h2">Items</span>
+  </div>
+
+  <div style="padding:14px 18px;display:flex;flex-direction:column;gap:12px;">
+    <div style="display:flex;align-items:center;gap:8px;height:40px;border:1px solid var(--border);border-radius:10px;padding:0 12px;background:var(--surface);">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-2)" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+      <span style="font-size:13px;color:var(--text-2);">Search by name or serial number</span>
+    </div>
+
+    <div style="display:flex;gap:8px;overflow-x:auto;">
+      <span class="chip active">All</span>
+      <span class="chip">Electronics</span>
+      <span class="chip">Furniture</span>
+      <span class="chip">Kitchen</span>
+      <span class="chip">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25"><path d="M12 9v4M12 17h.01M10.3 3.9L2.7 18a2 2 0 001.7 3h15.2a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"></path></svg>
+        Expiring
+      </span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
+      <div class="item-card">
+        <div class="thumb"></div>
+        <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+          <span style="font-size:13.5px;font-weight:600;">Sony A7 IV Camera</span>
+          <span class="muted">Electronics &middot; warranty exp. Sep 12</span>
+        </div>
+        <span style="font-size:13px;font-weight:600;">$2,499</span>
+      </div>
+      <div class="item-card">
+        <div class="thumb"></div>
+        <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+          <span style="font-size:13.5px;font-weight:600;">Dyson V15 Vacuum</span>
+          <span class="muted">Electronics &middot; warranty exp. Sep 20</span>
+        </div>
+        <span style="font-size:13px;font-weight:600;">$749</span>
+      </div>
+      <div class="item-card">
+        <div class="thumb"></div>
+        <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+          <span style="font-size:13.5px;font-weight:600;">KitchenAid Stand Mixer</span>
+          <span class="muted">Kitchen &middot; warranty exp. Jan 2027</span>
+        </div>
+        <span style="font-size:13px;font-weight:600;">$429</span>
+      </div>
+      <div class="item-card">
+        <div class="thumb"></div>
+        <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+          <span style="font-size:13.5px;font-weight:600;">Herman Miller Aeron</span>
+          <span class="muted">Furniture &middot; no warranty on file</span>
+        </div>
+        <span style="font-size:13px;font-weight:600;">$1,150</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="fab">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25"><path d="M12 5v14M5 12h14"></path></svg>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,153 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { CategoryIcon } from '@/components/CategoryIcon';
+
+interface Category {
+  id: string;
+  name: string;
+  icon: string | null;
+  itemCount: number;
+}
+
+export default function CategoriesPage() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [newName, setNewName] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [toast, setToast] = useState<string | null>(null);
+
+  function load() {
+    fetch('/api/categories')
+      .then((r) => r.json())
+      .then(setCategories);
+  }
+  useEffect(load, []);
+
+  function flash(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2200);
+  }
+
+  async function addCategory() {
+    const name = newName.trim();
+    if (!name) return;
+    const res = await fetch('/api/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (res.ok) {
+      setNewName('');
+      load();
+      flash('Category added');
+    } else {
+      const body = await res.json().catch(() => null);
+      flash(body?.error?.message ?? 'Could not add category');
+    }
+  }
+
+  async function saveRename(id: string) {
+    const name = editValue.trim();
+    setEditingId(null);
+    if (!name) return;
+    const res = await fetch(`/api/categories/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (res.ok) {
+      load();
+      flash('Category renamed');
+    } else {
+      const body = await res.json().catch(() => null);
+      flash(body?.error?.message ?? 'Could not rename category');
+    }
+  }
+
+  async function deleteCategory(cat: Category) {
+    if (cat.itemCount > 0) {
+      flash('Reassign or delete its items first');
+      return;
+    }
+    if (!window.confirm(`Delete "${cat.name}"?`)) return;
+    const res = await fetch(`/api/categories/${cat.id}`, { method: 'DELETE' });
+    if (res.ok) {
+      load();
+      flash('Category deleted');
+    }
+  }
+
+  return (
+    <div className="pb-24">
+      <div className="border-b border-border px-4 py-3.5">
+        <span className="font-display text-base font-bold">Categories</span>
+      </div>
+
+      <div className="mx-auto flex max-w-content flex-col gap-4 p-4">
+        <div className="flex gap-2">
+          <input
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && addCategory()}
+            placeholder="Add a category…"
+            className="h-11 flex-1 rounded-lg border border-border bg-surface px-3 text-sm"
+          />
+          <button onClick={addCategory} className="rounded-lg border border-border px-4 text-xs font-semibold">
+            Add
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-2.5">
+          {categories.map((c) => (
+            <div key={c.id} className="flex items-center gap-3 rounded-card border border-border bg-surface p-3.5">
+              <CategoryIcon icon={c.icon} />
+              <div className="flex min-w-0 flex-1 flex-col">
+                {editingId === c.id ? (
+                  <input
+                    autoFocus
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={() => saveRename(c.id)}
+                    onKeyDown={(e) => e.key === 'Enter' && saveRename(c.id)}
+                    className="border-b border-dashed border-accent bg-transparent text-sm font-semibold outline-none"
+                  />
+                ) : (
+                  <span className="text-sm font-semibold">{c.name}</span>
+                )}
+                <span className="text-xs text-text-secondary">{c.itemCount} items</span>
+              </div>
+              <button
+                onClick={() => {
+                  setEditingId(c.id);
+                  setEditValue(c.name);
+                }}
+                aria-label="Rename"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
+                </svg>
+              </button>
+              <button onClick={() => deleteCategory(c)} aria-label="Delete">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2">
+                  <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-xs text-text-secondary">
+          Every new account starts with five default categories. Categories with items can&apos;t be deleted until those items are reassigned.
+        </p>
+      </div>
+
+      {toast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 rounded-lg bg-text px-4 py-2.5 text-xs font-semibold text-bg">
+          {toast}
+        </div>
+      )}
+    </div>
+  );
+}

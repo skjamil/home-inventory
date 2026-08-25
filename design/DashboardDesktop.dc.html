@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    :root{
+      --bg:#FAFAF9; --surface:#FFFFFF; --border:#E5E5E3; --text:#1A1A19; --text-2:#6B6B68;
+      --accent:#0F766E; --accent-ink:#FFFFFF; --warn-bg:#FEF3C7; --warn-text:#B45309;
+    }
+    @media (prefers-color-scheme: dark){
+      :root:not([data-theme="light"]){
+        --bg:#111113; --surface:#1B1B1F; --border:#2A2A2E; --text:#F2F2F0; --text-2:#9A9A97;
+        --accent:#2DD4BF; --accent-ink:#08312D; --warn-bg:#3F2E0A; --warn-text:#FBBF24;
+      }
+    }
+    :root[data-theme="dark"]{
+      --bg:#111113; --surface:#1B1B1F; --border:#2A2A2E; --text:#F2F2F0; --text-2:#9A9A97;
+      --accent:#2DD4BF; --accent-ink:#08312D; --warn-bg:#3F2E0A; --warn-text:#FBBF24;
+    }
+    *{box-sizing:border-box;}
+    html,body{margin:0;height:100%;}
+    body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,'Segoe UI',sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;}
+    .h1{font-family:'Manrope',sans-serif;font-weight:800;font-size:20px;letter-spacing:-0.01em;margin:0;}
+    .h2{font-family:'Manrope',sans-serif;font-weight:700;font-size:16px;margin:0;}
+    .muted{color:var(--text-2);font-size:12.5px;}
+    .cat-card{display:flex;flex-direction:column;gap:12px;padding:18px;border:1px solid var(--border);border-radius:12px;background:var(--surface);}
+    .cat-count{font-size:22px;font-weight:700;}
+    .cat-name{font-size:12px;color:var(--text-2);}
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+</helmet>
+<div style="min-height:100%;background:var(--bg);">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 40px;border-bottom:1px solid var(--border);">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.75"><rect x="3" y="3" width="18" height="18" rx="5"></rect><path d="M8 12h8M12 8v8"></path></svg>
+      <span class="h2">Home Inventory</span>
+    </div>
+    <div style="width:28px;height:28px;border-radius:50%;background:var(--border);"></div>
+  </div>
+
+  <div style="max-width:640px;margin:0 auto;padding:32px 20px;display:flex;flex-direction:column;gap:20px;">
+
+    <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--surface);">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--warn-bg);color:var(--warn-text);padding:13px 16px;">
+        <div style="display:flex;align-items:center;gap:9px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 9v4M12 17h.01M10.3 3.9L2.7 18a2 2 0 001.7 3h15.2a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"></path></svg>
+          <span style="font-size:13.5px;font-weight:600;">3 warranties expire this month</span>
+        </div>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <span class="h1">Your inventory</span>
+      <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:14px;">
+        <div class="cat-card">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6"><rect x="6" y="7" width="12" height="9" rx="2"></rect><path d="M9 7V4M15 7V4M9 20v-2M15 20v-2"></path></svg>
+          <div><div class="cat-count">12</div><div class="cat-name">Electronics</div></div>
+        </div>
+        <div class="cat-card">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6"><path d="M5 11V8a2 2 0 012-2h10a2 2 0 012 2v3"></path><rect x="4" y="11" width="16" height="6" rx="1.5"></rect><path d="M6 17v2M18 17v2"></path></svg>
+          <div><div class="cat-count">8</div><div class="cat-name">Furniture</div></div>
+        </div>
+        <div class="cat-card">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 005.4-5.4l-2.3 2.3-2-2 2.3-2.3z"></path></svg>
+          <div><div class="cat-count">17</div><div class="cat-name">Tools</div></div>
+        </div>
+        <div class="cat-card">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6"><path d="M7 3v6a2 2 0 002 2v10"></path><path d="M7 3v6M9 3v6"></path><path d="M16 3c-1.4 0-2.5 1.6-2.5 4.5S14.6 12 16 12v9"></path></svg>
+          <div><div class="cat-count">34</div><div class="cat-name">Kitchen</div></div>
+        </div>
+        <div class="cat-card">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6"><path d="M3 8l9-5 9 5-9 5-9-5z"></path><path d="M3 8v9l9 5m0-14v14m9-14v9l-9 5"></path></svg>
+          <div><div class="cat-count">9</div><div class="cat-name">Storage</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

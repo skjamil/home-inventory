@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tokens match docs/DESIGN.md's "Visual style notes" palette table exactly. */
+:root {
+  --bg: #fafaf9;
+  --surface: #ffffff;
+  --border: #e5e5e3;
+  --text: #1a1a19;
+  --text-secondary: #6b6b68;
+  --accent: #0f766e;
+  --accent-ink: #ffffff;
+  --warn-bg: #fef3c7;
+  --warn-text: #b45309;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #111113;
+    --surface: #1b1b1f;
+    --border: #2a2a2e;
+    --text: #f2f2f0;
+    --text-secondary: #9a9a97;
+    --accent: #2dd4bf;
+    --accent-ink: #08312d;
+    --warn-bg: #3f2e0a;
+    --warn-text: #fbbf24;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #111113;
+  --surface: #1b1b1f;
+  --border: #2a2a2e;
+  --text: #f2f2f0;
+  --text-secondary: #9a9a97;
+  --accent: #2dd4bf;
+  --accent-ink: #08312d;
+  --warn-bg: #3f2e0a;
+  --warn-text: #fbbf24;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+}

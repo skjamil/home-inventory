@@ -1,0 +1,108 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    :root{
+      --bg:#FAFAF9; --surface:#FFFFFF; --border:#E5E5E3; --text:#1A1A19; --text-2:#6B6B68;
+      --accent:#0F766E; --accent-ink:#FFFFFF; --warn-bg:#FEF3C7; --warn-text:#B45309;
+    }
+    @media (prefers-color-scheme: dark){
+      :root:not([data-theme="light"]){
+        --bg:#111113; --surface:#1B1B1F; --border:#2A2A2E; --text:#F2F2F0; --text-2:#9A9A97;
+        --accent:#2DD4BF; --accent-ink:#08312D; --warn-bg:#3F2E0A; --warn-text:#FBBF24;
+      }
+    }
+    :root[data-theme="dark"]{
+      --bg:#111113; --surface:#1B1B1F; --border:#2A2A2E; --text:#F2F2F0; --text-2:#9A9A97;
+      --accent:#2DD4BF; --accent-ink:#08312D; --warn-bg:#3F2E0A; --warn-text:#FBBF24;
+    }
+    *{box-sizing:border-box;}
+    html,body{margin:0;height:100%;}
+    body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,'Segoe UI',sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;}
+    .h2{font-family:'Manrope',sans-serif;font-weight:700;font-size:16px;margin:0;}
+    .field{display:flex;flex-direction:column;gap:6px;}
+    .field span{font-size:12px;font-weight:600;color:var(--text-2);}
+    .field input,.field select{height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;background:var(--surface);color:var(--text);font-family:'Inter',sans-serif;font-size:13.5px;}
+    .field input::placeholder{color:var(--text-2);}
+    .cap{border:1.5px dashed var(--border);border-radius:10px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--text-2);background:var(--surface);}
+    .cap-thumbs{display:flex;gap:8px;flex-wrap:wrap;}
+    .cap-thumb{width:56px;height:56px;border-radius:8px;background:var(--border);position:relative;}
+    .btn-primary{height:46px;border:none;border-radius:10px;background:var(--accent);color:var(--accent-ink);font-family:'Inter',sans-serif;font-weight:600;font-size:14px;cursor:pointer;width:100%;}
+    .btn-ghost{height:46px;border:1px solid var(--border);border-radius:10px;background:transparent;color:var(--text);font-family:'Inter',sans-serif;font-weight:600;font-size:14px;cursor:pointer;width:100%;}
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+</helmet>
+<div style="min-height:100%;background:var(--bg);">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text)" stroke-width="2"><path d="M15 18l-6-6 6-6"></path></svg>
+      <span class="h2">Add item</span>
+    </div>
+    <span style="font-size:13px;font-weight:700;color:var(--accent);">Save</span>
+  </div>
+
+  <div style="padding:18px;display:flex;flex-direction:column;gap:16px;">
+    <label class="field">
+      <span>Name</span>
+      <input placeholder="e.g. Sony A7 IV Camera">
+    </label>
+    <label class="field">
+      <span>Category</span>
+      <select><option>Electronics</option></select>
+    </label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <label class="field"><span>Purchase date</span><input placeholder="Sep 12, 2024"></label>
+      <label class="field"><span>Price</span><input placeholder="$2,499.00"></label>
+    </div>
+    <label class="field">
+      <span>Warranty expiration</span>
+      <input placeholder="Sep 12, 2026">
+    </label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <label class="field"><span>Serial number</span><input placeholder="Optional"></label>
+      <label class="field"><span>Location</span><input placeholder="e.g. Office shelf"></label>
+    </div>
+
+    <div style="height:1px;background:var(--border);margin:4px 0;"></div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <span style="font-size:12px;font-weight:600;color:var(--text-2);">Photos</span>
+      <div class="cap-thumbs">
+        <div class="cap-thumb"></div>
+        <div class="cap-thumb"></div>
+        <div class="cap" style="width:56px;height:56px;padding:0;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 8a2 2 0 012-2h1l1.4-2h7.2L17 6h1a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <span style="font-size:12px;font-weight:600;color:var(--text-2);">Receipt</span>
+      <div class="cap">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8a2 2 0 012-2h1l1.4-2h7.2L17 6h1a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>
+        <span style="font-size:12px;">Tap to take a photo or choose a file</span>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <span style="font-size:12px;font-weight:600;color:var(--text-2);">Warranty document</span>
+      <div class="cap">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8a2 2 0 012-2h1l1.4-2h7.2L17 6h1a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>
+        <span style="font-size:12px;">Tap to take a photo or choose a file</span>
+      </div>
+    </div>
+
+    <button class="btn-primary" style="margin-top:8px;">Save item</button>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
