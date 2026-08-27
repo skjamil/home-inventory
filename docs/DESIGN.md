@@ -84,6 +84,7 @@ This document covers screens, user flows, and layout. Data model lives in `MODUL
 ### Settings
 - Toggle switch: "Notify me when warranties are expiring this month" (bound to `warrantyNotificationsEnabled`).
 - Change password form (current password, new password, confirm).
+- Log out action, below the account form — the only sign-out entry point in the app.
 
 ## Camera / gallery capture UX
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { signOut } from 'next-auth/react';
 import { Field } from '@/components/ui/Field';
 import { Button } from '@/components/ui/Button';
 
@@ -10,6 +11,7 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     fetch('/api/settings')
@@ -80,6 +82,17 @@ export default function SettingsPage() {
             {saving ? 'Updating…' : 'Update password'}
           </Button>
         </form>
+
+        <Button
+          variant="danger"
+          disabled={loggingOut}
+          onClick={() => {
+            setLoggingOut(true);
+            signOut({ callbackUrl: '/login' });
+          }}
+        >
+          {loggingOut ? 'Logging out…' : 'Log out'}
+        </Button>
       </div>
     </div>
   );
