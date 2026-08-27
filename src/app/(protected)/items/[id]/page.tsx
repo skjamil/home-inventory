@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { differenceInCalendarDays } from 'date-fns';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { DeleteItemButton } from '@/components/items/DeleteItemButton';
@@ -72,7 +73,7 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
             <Row
               label="Warranty expiration"
               value={item.warrantyExpiration ? new Date(item.warrantyExpiration).toLocaleDateString() : '—'}
-              warn={!!item.warrantyExpiration}
+              warn={!!item.warrantyExpiration && differenceInCalendarDays(item.warrantyExpiration, new Date()) <= 30}
             />
             <Row label="Serial number" value={item.serialNumber || '—'} />
             <Row label="Location" value={item.location || '—'} />

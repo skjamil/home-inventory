@@ -66,7 +66,7 @@ export default function ItemsPage() {
           />
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-0.5">
+        <div className="flex flex-wrap gap-2 pb-0.5">
           <Chip active={!activeCategoryId && !expiringOnly} onClick={() => { setActiveCategoryId(''); setExpiringOnly(false); }}>
             All
           </Chip>

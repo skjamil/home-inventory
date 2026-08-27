@@ -4,13 +4,17 @@ import { z } from 'zod';
 // a personal-inventory user — see docs/API.md's register/reset-password error cases.
 const password = z.string().min(10, 'Password must be at least 10 characters');
 
+// Normalize before validating so "Foo@Example.com" and "foo@example.com"
+// are treated as the same account everywhere (register, login, reset).
+const email = z.string().trim().toLowerCase().email();
+
 export const registerSchema = z.object({
-  email: z.string().email(),
+  email,
   password,
 });
 
 export const forgotPasswordSchema = z.object({
-  email: z.string().email(),
+  email,
 });
 
 export const resetPasswordSchema = z.object({

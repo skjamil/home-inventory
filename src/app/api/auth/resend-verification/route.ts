@@ -6,7 +6,7 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { sendVerificationEmail } from '@/lib/email';
 
 const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
-const schema = z.object({ email: z.string().email() });
+const schema = z.object({ email: z.string().trim().toLowerCase().email() });
 
 // Backs the "resend verification email" action described in docs/DESIGN.md's
 // Login and Verify Email screens. Not yet in docs/API.md — added while
