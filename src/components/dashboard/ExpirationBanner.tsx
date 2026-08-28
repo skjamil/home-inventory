@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 export interface ExpiringEntry {
@@ -9,18 +9,51 @@ export interface ExpiringEntry {
   itemName: string;
   date: string | null;
   kind: 'warranty' | 'amc';
+  daysUntil: number | null;
+  isExpired: boolean;
 }
 
-export function ExpirationBanner({ entries }: { entries: ExpiringEntry[] }) {
+const POLL_INTERVAL_MS = 60_000;
+
+export function ExpirationBanner({ initialEntries }: { initialEntries: ExpiringEntry[] }) {
   const [open, setOpen] = useState(false);
+  const [entries, setEntries] = useState(initialEntries);
+
+  useEffect(() => {
+    async function refetch() {
+      try {
+        const res = await fetch('/api/notifications/expiring');
+        if (!res.ok) return;
+        const data = await res.json();
+        setEntries(data.entries);
+      } catch {
+        // Transient network errors just leave the last-known entries in place.
+      }
+    }
+
+    const interval = setInterval(() => {
+      if (!document.hidden) refetch();
+    }, POLL_INTERVAL_MS);
+
+    function onVisibilityChange() {
+      if (!document.hidden) refetch();
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, []);
+
   if (entries.length === 0) return null;
 
-  const warrantyCount = entries.filter((e) => e.kind === 'warranty').length;
-  const amcCount = entries.filter((e) => e.kind === 'amc').length;
+  const expiredCount = entries.filter((e) => e.isExpired).length;
+  const soonCount = entries.length - expiredCount;
   const parts: string[] = [];
-  if (warrantyCount) parts.push(`${warrantyCount} ${warrantyCount === 1 ? 'warranty' : 'warranties'}`);
-  if (amcCount) parts.push(`${amcCount} ${amcCount === 1 ? 'AMC' : 'AMCs'}`);
-  const label = `${parts.join(' + ')} expire${entries.length === 1 ? 's' : ''} this month`;
+  if (soonCount) parts.push(`${soonCount} expiring soon`);
+  if (expiredCount) parts.push(`${expiredCount} expired`);
+  const label = `${entries.length} ${entries.length === 1 ? 'item needs' : 'items need'} attention (${parts.join(', ')})`;
 
   return (
     <div className="overflow-hidden rounded-card border border-border bg-surface">
@@ -60,7 +93,10 @@ export function ExpirationBanner({ entries }: { entries: ExpiringEntry[] }) {
                   {entry.kind === 'warranty' ? 'Warranty' : 'AMC'}
                 </span>
               </span>
-              <span className="flex-shrink-0 text-text-secondary">{entry.date ? new Date(entry.date).toLocaleDateString() : ''}</span>
+              <span className="flex-shrink-0 text-text-secondary">
+                {entry.isExpired ? 'Expired ' : ''}
+                {entry.date ? new Date(entry.date).toLocaleDateString() : ''}
+              </span>
             </Link>
           ))}
         </div>

@@ -1,6 +1,6 @@
 # API Reference — Home Inventory Manager
 
-All routes except `/api/auth/*` require an authenticated session — each route checks this itself (see "Route protection" in `docs/ARCHITECTURE.md`); unauthenticated requests receive `401 Unauthorized`. All request/response bodies are JSON unless noted. `register`, `resend-verification`, the credentials login callback, and `forgot-password` are additionally rate-limited (Upstash Redis) since they're public and unauthenticated — repeated abuse returns `429 Too Many Requests`. Every endpoint below that accepts an `email` normalizes it (trimmed + lowercased) before matching or storing it, so registration, login, and password reset are all case-insensitive on email.
+All routes except `/api/auth/*` and `/api/cron/expiry-notifications` (which is `CRON_SECRET`-authenticated instead — see "Notifications" below) require an authenticated session — each route checks this itself (see "Route protection" in `docs/ARCHITECTURE.md`); unauthenticated requests receive `401 Unauthorized`. All request/response bodies are JSON unless noted. `register`, `resend-verification`, the credentials login callback, and `forgot-password` are additionally rate-limited (Upstash Redis) since they're public and unauthenticated — repeated abuse returns `429 Too Many Requests`. Every endpoint below that accepts an `email` normalizes it (trimmed + lowercased) before matching or storing it, so registration, login, and password reset are all case-insensitive on email.
 
 ## Auth
 
@@ -157,12 +157,33 @@ Remove an AMC contract (deletes its Blob document, if any, and the DB row).
 
 ### `GET /api/settings`
 Fetch the current user's preferences.
-- **Response**: `200 { warrantyNotificationsEnabled: boolean, amcNotificationsEnabled: boolean }`
+- **Response**: `200 { warrantyNotificationsEnabled: boolean, amcNotificationsEnabled: boolean, emailNotificationsEnabled: boolean }`
 
 ### `PATCH /api/settings`
-Update preferences. Either field may be omitted to leave it unchanged.
-- **Request body**: `{ warrantyNotificationsEnabled?: boolean, amcNotificationsEnabled?: boolean }`
-- **Response**: `200 { warrantyNotificationsEnabled: boolean, amcNotificationsEnabled: boolean }`
+Update preferences. Any field may be omitted to leave it unchanged.
+- **Request body**: `{ warrantyNotificationsEnabled?: boolean, amcNotificationsEnabled?: boolean, emailNotificationsEnabled?: boolean }`
+- **Response**: `200 { warrantyNotificationsEnabled: boolean, amcNotificationsEnabled: boolean, emailNotificationsEnabled: boolean }`
+
+## Notifications
+
+### `GET /api/notifications/expiring`
+Polled by the dashboard's `ExpirationBanner` (every 60s while the tab is visible) so it stays live without a manual reload. Same underlying query as the dashboard's initial server-rendered fetch (`lib/expiring-entries.ts`).
+- **Response**: `200 { entries: { key, itemId, itemName, date: string | null, kind: 'warranty' | 'amc', daysUntil: number | null, isExpired: boolean }[] }`
+
+### `POST /api/push/subscribe`
+Registers a browser push subscription for the current device. Upserted by `endpoint` (globally unique per the Web Push spec).
+- **Request body**: `{ endpoint: string, keys: { p256dh: string, auth: string } }` (the object returned by `PushSubscription.toJSON()`)
+- **Response**: `200 { ok: true }`
+
+### `DELETE /api/push/subscribe`
+Removes a browser push subscription (scoped to the requesting user's own subscriptions).
+- **Request body**: `{ endpoint: string }`
+- **Response**: `200 { ok: true }`
+
+### `GET /api/cron/expiry-notifications`
+The daily expiration-notification digest job, invoked by Vercel Cron per `vercel.json` (13:00 UTC). **Not session-authenticated** — the one exception to this file's opening line — instead requires `Authorization: Bearer $CRON_SECRET`, which Vercel sends automatically on cron-triggered calls. Finds every warranty/AMC crossing a 30/7/1-day-before threshold, sends at most one digest email and one summarized push per affected user, and logs sends to `ExpiryNotificationLog` to avoid re-notifying the same threshold. Safe to call manually for testing: `curl -H "Authorization: Bearer $CRON_SECRET" .../api/cron/expiry-notifications`.
+- **Response**: `200 { usersNotified: number, emailsSent: number, pushSent: number, errors: string[] }`
+- **Errors**: `401` if the bearer token is missing or doesn't match `CRON_SECRET`.
 
 ## Account
 

@@ -7,6 +7,7 @@ import { jsonError } from '@/lib/api-utils';
 const schema = z.object({
   warrantyNotificationsEnabled: z.boolean().optional(),
   amcNotificationsEnabled: z.boolean().optional(),
+  emailNotificationsEnabled: z.boolean().optional(),
 });
 
 export async function GET() {
@@ -17,6 +18,7 @@ export async function GET() {
   return NextResponse.json({
     warrantyNotificationsEnabled: prefs?.warrantyNotificationsEnabled ?? true,
     amcNotificationsEnabled: prefs?.amcNotificationsEnabled ?? true,
+    emailNotificationsEnabled: prefs?.emailNotificationsEnabled ?? true,
   });
 }
 
@@ -37,5 +39,6 @@ export async function PATCH(req: NextRequest) {
   return NextResponse.json({
     warrantyNotificationsEnabled: prefs.warrantyNotificationsEnabled,
     amcNotificationsEnabled: prefs.amcNotificationsEnabled,
+    emailNotificationsEnabled: prefs.emailNotificationsEnabled,
   });
 }

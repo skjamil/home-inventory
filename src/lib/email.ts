@@ -60,3 +60,28 @@ export async function sendPasswordResetEmail(email: string, token: string) {
     `Password reset link for ${email}: ${link}`
   );
 }
+
+export interface ExpiringDigestItem {
+  itemName: string;
+  kind: 'warranty' | 'amc';
+  daysUntil: number;
+}
+
+export async function sendExpirationDigestEmail(email: string, entries: ExpiringDigestItem[]) {
+  const link = `${appUrl()}/dashboard`;
+  const subject = `${entries.length} ${entries.length === 1 ? 'item' : 'items'} expiring soon — Home Inventory`;
+  const rows = entries
+    .map((e) => {
+      const kindLabel = e.kind === 'warranty' ? 'Warranty' : 'AMC contract';
+      const dayLabel = e.daysUntil === 0 ? 'expires today' : `expires in ${e.daysUntil} day${e.daysUntil === 1 ? '' : 's'}`;
+      return `<li>${e.itemName} — ${kindLabel} ${dayLabel}</li>`;
+    })
+    .join('');
+
+  await sendMail(
+    email,
+    subject,
+    `<p>The following items are expiring soon:</p><ul>${rows}</ul><p><a href="${link}">View your dashboard</a></p>`,
+    `Expiration digest for ${email}: ${entries.length} item(s) expiring soon — ${link}`
+  );
+}

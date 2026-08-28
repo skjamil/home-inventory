@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { differenceInCalendarDays } from 'date-fns';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { getExpiryStatus } from '@/lib/expiry';
 import { DeleteItemButton } from '@/components/items/DeleteItemButton';
 
 export default async function ItemDetailPage({ params }: { params: { id: string } }) {
@@ -20,6 +20,7 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
   const photos = item.attachments.filter((a) => a.type === 'PHOTO');
   const receipt = item.attachments.find((a) => a.type === 'RECEIPT');
   const warrantyDoc = item.attachments.find((a) => a.type === 'WARRANTY');
+  const warrantyStatus = getExpiryStatus(item.warrantyExpiration);
 
   return (
     <div className="pb-24">
@@ -76,8 +77,12 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
             <Row label="Price" value={item.price != null ? `$${Number(item.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'} />
             <Row
               label="Warranty expiration"
-              value={item.warrantyExpiration ? new Date(item.warrantyExpiration).toLocaleDateString() : '—'}
-              warn={!!item.warrantyExpiration && differenceInCalendarDays(item.warrantyExpiration, new Date()) <= 30}
+              value={
+                item.warrantyExpiration
+                  ? `${new Date(item.warrantyExpiration).toLocaleDateString()}${warrantyStatus.isExpired ? ' (Expired)' : ''}`
+                  : '—'
+              }
+              warn={warrantyStatus.isExpiringSoon || warrantyStatus.isExpired}
             />
             <Row label="Serial number" value={item.serialNumber || '—'} />
             <Row label="Location" value={item.location || '—'} />
@@ -91,7 +96,8 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
             <span className="text-xs text-text-secondary">No AMC contracts on file.</span>
           ) : (
             item.amcContracts.map((c) => {
-              const warn = !!c.endDate && differenceInCalendarDays(c.endDate, new Date()) <= 30;
+              const status = getExpiryStatus(c.endDate);
+              const warn = status.isExpiringSoon || status.isExpired;
               return (
                 <div key={c.id} className="rounded-card border border-border bg-surface p-3.5">
                   <div className="flex items-center justify-between gap-2">
@@ -102,6 +108,7 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
                   </div>
                   <div className={`text-xs ${warn ? 'text-warn-text' : 'text-text-secondary'}`}>
                     {c.startDate ? new Date(c.startDate).toLocaleDateString() : '—'} – {c.endDate ? new Date(c.endDate).toLocaleDateString() : '—'}
+                    {status.isExpired ? ' (Expired)' : ''}
                   </div>
                   {c.documentBlobUrl && (
                     <div className="mt-2">

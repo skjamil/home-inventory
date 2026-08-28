@@ -1,17 +1,16 @@
-import { startOfMonth, endOfMonth } from 'date-fns';
+import { addDays, startOfDay } from 'date-fns';
 import { db } from '@/lib/db';
+import { EXPIRY_THRESHOLDS_DAYS } from '@/lib/expiry';
 
-// "N AMCs expire this month" — mirrors lib/warranty.ts's shape. Indexed by
+// AMC contracts expiring within the largest configured threshold (30 days)
+// or already expired — mirrors lib/warranty.ts's shape. Indexed by
 // (userId, endDate) in prisma/schema.prisma.
 export function getExpiringAmcContracts(userId: string) {
-  const now = new Date();
+  const cutoff = addDays(startOfDay(new Date()), Math.max(...EXPIRY_THRESHOLDS_DAYS));
   return db.amcContract.findMany({
     where: {
       userId,
-      endDate: {
-        gte: startOfMonth(now),
-        lte: endOfMonth(now),
-      },
+      endDate: { lte: cutoff },
     },
     include: { item: { select: { id: true, name: true } } },
     orderBy: { endDate: 'asc' },

@@ -26,6 +26,8 @@ model User {
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens     PasswordResetToken[]
   amcContracts            AmcContract[]
+  pushSubscriptions       PushSubscription[]
+  expiryNotificationLogs  ExpiryNotificationLog[]
 }
 
 model EmailVerificationToken {
@@ -57,6 +59,7 @@ model UserPreferences {
   user                         User    @relation(fields: [userId], references: [id])
   warrantyNotificationsEnabled Boolean @default(true)
   amcNotificationsEnabled      Boolean @default(true)
+  emailNotificationsEnabled    Boolean @default(true)
 }
 
 model Category {
@@ -132,6 +135,44 @@ model AmcContract {
 
   @@index([itemId])
   @@index([userId, endDate])
+}
+
+enum ExpirySourceType {
+  WARRANTY
+  AMC
+}
+
+enum NotificationChannel {
+  EMAIL
+  PUSH
+}
+
+model PushSubscription {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model ExpiryNotificationLog {
+  id            String              @id @default(cuid())
+  userId        String
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceType    ExpirySourceType
+  sourceId      String
+  thresholdDays Int
+  channel       NotificationChannel
+  sentAt        DateTime            @default(now())
+
+  @@unique([userId, sourceType, sourceId, thresholdDays, channel])
+  @@index([userId])
 }
 
 // --- Auth.js (@auth/prisma-adapter) required models ---

@@ -1,18 +1,19 @@
-import { startOfMonth, endOfMonth } from 'date-fns';
+import { addDays, startOfDay } from 'date-fns';
 import { db } from '@/lib/db';
+import { EXPIRY_THRESHOLDS_DAYS } from '@/lib/expiry';
 
-// "N warranties expire this month" — see docs/ARCHITECTURE.md's
-// "Warranty notification" data flow. Indexed by (userId, warrantyExpiration)
-// in prisma/schema.prisma.
+// Warranties expiring within the largest configured threshold (30 days) or
+// already expired — see docs/ARCHITECTURE.md's "Expiration notification"
+// data flow. Indexed by (userId, warrantyExpiration) in prisma/schema.prisma.
+// No lower bound: an already-expired warranty must keep showing up here
+// (previously this used a startOfMonth/endOfMonth window, which silently
+// dropped expired items once the calendar month rolled over).
 export function getExpiringWarranties(userId: string) {
-  const now = new Date();
+  const cutoff = addDays(startOfDay(new Date()), Math.max(...EXPIRY_THRESHOLDS_DAYS));
   return db.item.findMany({
     where: {
       userId,
-      warrantyExpiration: {
-        gte: startOfMonth(now),
-        lte: endOfMonth(now),
-      },
+      warrantyExpiration: { lte: cutoff },
     },
     orderBy: { warrantyExpiration: 'asc' },
   });

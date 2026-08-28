@@ -10,11 +10,13 @@
 | ORM | Prisma | Schema-first migrations and a strongly-typed client suit this small, well-defined schema (User, Category, Item, Attachment); simpler day-to-day ergonomics than Drizzle for this scope. |
 | File storage | Vercel Blob | Binary files (photos, receipts, warranty PDFs) do not belong in Postgres rows; Blob gives direct client-to-storage uploads with signed tokens, avoiding server payload limits. |
 | Auth | Auth.js (NextAuth v5), Credentials provider, JWT sessions | Self-service, multi-user login: email+password registration, required email verification, and password reset. Sessions are JWTs, not database-backed — Auth.js's Credentials provider only supports JWT sessions (a hard library constraint, confirmed via a runtime `UnsupportedStrategy` error during implementation; database sessions require the OAuth-style account-linking flow that Credentials bypasses). One consequence: password reset can't force-revoke an existing session — a JWT stays valid until it expires. A token-versioning scheme would restore that property; not built yet. Credentials (not magic links) keeps day-to-day login free of email round-trips — email is only needed for the verification/reset side flows. |
-| Transactional email | Resend (Production), Mailtrap via `nodemailer` (Preview, Development, and local dev) | Verification and password-reset emails require sending mail, a capability the app didn't previously need. Resend has a simple API and integrates cleanly with Vercel/Next.js; scoped strictly to these two auth flows — it is **not** used for warranty notifications, which stay in-app only. Mailtrap's sandbox inbox stands in for every non-Production environment so testing never risks a real delivery or requires burning Resend's free-tier quota — see "Email delivery: environments" below. |
+| Transactional email | Resend (Production), Mailtrap via `nodemailer` (Preview, Development, and local dev) | Verification and password-reset emails require sending mail, a capability the app didn't previously need. Resend has a simple API and integrates cleanly with Vercel/Next.js. Reused for the expiration-notification digest (see "Expiration notification" below) via the same `sendMail()` core — Resend/Mailtrap is no longer scoped strictly to auth. Mailtrap's sandbox inbox stands in for every non-Production environment so testing never risks a real delivery or requires burning Resend's free-tier quota — see "Email delivery: environments" below. |
+| Push notifications | `web-push` (Web Push API, VAPID) | Delivers expiration alerts even when the app/tab is closed — the only channel of the three (banner, email, push) that reaches the user proactively outside the browser. No existing push/PWA infrastructure before this; added as a small, dependency-light layer (one service worker, one npm package) rather than a full PWA. |
 | Rate limiting | Upstash Redis + `@upstash/ratelimit` | The app is now publicly reachable with self-service registration, so `register`, `login`, and `forgot-password` need abuse protection. Vercel's serverless functions are stateless, so an in-memory counter wouldn't work across requests/instances — Upstash's Redis-backed limiter does. |
 | Styling | Tailwind CSS, mobile-first utility usage | Fast to build a form-heavy CRUD UI consistently; utility classes are unprefixed for the mobile layout by default, with `sm:`/`md:` overrides layered on for wider viewports — matching the app's mobile-first, camera-first design (see "Styling & responsive strategy" below). |
 | Validation | zod | Shared request/response validation between client forms and API routes. |
-| Date handling | date-fns | Computing "expiring this month" windows. |
+| Date handling | date-fns | Computing days-until-expiry (`src/lib/expiry.ts`) for the expiration notification system. |
+| Scheduling | Vercel Cron | Triggers the daily expiration-notification check (`/api/cron/expiry-notifications`) — Hobby tier caps this at once/day, so the whole notification design is a daily batch, not instantaneous. |
 
 ## System overview
 
@@ -75,6 +77,9 @@ home-inventory/
         items/[id]/attachments/route.ts, items/[id]/attachments/[attId]/route.ts
         items/[id]/amc/route.ts, items/[id]/amc/[amcId]/route.ts
         settings/route.ts
+        notifications/expiring/route.ts        # polled by ExpirationBanner for live updates
+        push/subscribe/route.ts                # POST/DELETE a browser's push subscription
+        cron/expiry-notifications/route.ts     # daily digest — see vercel.json's crons config
       (protected)/                            # route group, guarded by middleware
         dashboard/page.tsx
         categories/page.tsx
@@ -84,18 +89,25 @@ home-inventory/
       upload/FileCaptureInput.tsx, AttachmentUploader.tsx, AttachmentGallery.tsx
       dashboard/CategoryCountCard.tsx, ExpirationBanner.tsx
       items/ItemForm.tsx, ItemCard.tsx, ItemFilterBar.tsx, AmcContractsField.tsx
+      settings/PushNotificationToggle.tsx
       layout/NavBar.tsx
     lib/
       db.ts            # Prisma client singleton
       auth.ts           # NextAuth v5 config
-      email.ts           # sends verification/reset emails via Resend (prod) or Mailtrap/nodemailer (dev)
+      email.ts           # sends verification/reset/expiration-digest emails via Resend (prod) or Mailtrap/nodemailer (dev)
+      push.ts            # sends Web Push notifications via web-push, prunes stale subscriptions
       rate-limit.ts       # Upstash Redis rate limiter helper
       blob.ts           # Blob upload helper
-      warranty.ts        # "expiring this month" query, for warranties
-      amc.ts             # "expiring this month" query, for AMC contracts
+      expiry.ts          # canonical days-until-expiry helper (thresholds, expired/expiring-soon)
+      expiring-entries.ts # shared dashboard/polling query — merges warranty + AMC results
+      warranty.ts        # items expiring within the configured thresholds
+      amc.ts             # AMC contracts expiring within the configured thresholds
       validations/item.ts, category.ts, auth.ts, amc.ts
     middleware.ts        # protects (protected)/* and item/category/settings API routes
+  public/
+    sw.js               # service worker — Web Push only, no offline caching
   .env.example
+  vercel.json             # Vercel Cron config for the expiry-notification job
 ```
 
 ## Key data flows
@@ -131,8 +143,15 @@ Protecting `(protected)/*` pages and the items/categories/settings/account/uploa
 3. **Every protected API route**: calls `auth()` itself and returns `401` if there's no valid session — this is the real route-level enforcement.
 
 ### Expiration notification (warranty + AMC)
-1. `lib/warranty.ts` queries items where `warrantyExpiration` falls between the start and end of the current calendar month; `lib/amc.ts`'s `getExpiringAmcContracts` mirrors this exact shape for `AmcContract.endDate`, filtering on `AmcContract`'s denormalized `userId` (see the AMC Contracts model note in `docs/MODULES.md`).
-2. The dashboard server component runs each query independently, gated by its own preference (`warrantyNotificationsEnabled`, `amcNotificationsEnabled`), merges the results into a single date-sorted list, and passes it to `ExpirationBanner`, which renders one combined count/banner (e.g. "3 warranties + 2 AMCs expire this month") rather than two separate banners.
+
+Three delivery channels, one canonical set of thresholds: **30 / 7 / 1 days before** expiry (`EXPIRY_THRESHOLDS_DAYS` in `lib/expiry.ts`), never on/after the expiry date, never repeated.
+
+- **`lib/expiry.ts`** is the single source of truth for expiry date-math: `getExpiryStatus(date)` returns `{ daysUntil, isExpired, isExpiringSoon }`, consumed by `lib/warranty.ts`/`lib/amc.ts` (the dashboard/polling query layer), the item detail page, and the cron job below. (Previously these had three independent, disagreeing implementations — a `startOfMonth`/`endOfMonth` window that silently dropped already-expired items once the month rolled over, and a separate rolling-30-day check on the item detail page.)
+- **In-app live banner**: `lib/expiring-entries.ts`'s `getExpiringEntries(userId)` (items/AMCs expiring within 30 days or already expired, gated by `warrantyNotificationsEnabled`/`amcNotificationsEnabled`) backs both the dashboard's SSR initial paint and `GET /api/notifications/expiring`, which `ExpirationBanner` polls every 60s (paused while the tab is hidden, refetched immediately on refocus) so the banner updates without a manual reload.
+- **Email**: `GET /api/cron/expiry-notifications` (Vercel Cron, daily at 13:00 UTC per `vercel.json` — Hobby tier caps cron at once/day) finds every warranty/AMC crossing a threshold today, batches them per user into one digest, and sends via `sendExpirationDigestEmail()` in `lib/email.ts` (same Resend/Mailtrap transport as verification/reset email), gated by `UserPreferences.emailNotificationsEnabled`.
+- **Push**: the same cron run also sends one summarized push per user (if they have any `PushSubscription` rows) via `lib/push.ts`'s `sendPushToUser()` (the `web-push` package + VAPID keys). Subscribing happens client-side in Settings (`PushNotificationToggle`) via the service worker at `public/sw.js`; it's a per-device toggle, not account-wide — a user must enable it separately on each browser/device they want notified. Stale subscriptions (`410`/`404` from the push service) are pruned automatically.
+- **Dedup**: `ExpiryNotificationLog` records `(userId, sourceType, sourceId, thresholdDays, channel)` the moment a send succeeds, so the same threshold/channel is never notified twice — the cron is safe to re-run or overlap.
+- Auth for the cron route is `Authorization: Bearer $CRON_SECRET`, which Vercel sends automatically on cron-triggered requests; it's the one route in this app that isn't session-authenticated.
 
 ## Styling & responsive strategy
 
@@ -200,7 +219,7 @@ The app is live: **https://home-inventory-ecru.vercel.app** (Vercel project `hom
 - **Database**: Neon, provisioned via Vercel's Marketplace integration (see the Database row in the tech stack table above). The integration auto-manages `DATABASE_URL` (pooled) plus a batch of `PG*`/`POSTGRES_*`/`DATABASE_URL_UNPOOLED` vars across Production/Preview/Development — but **not** `DIRECT_URL`, which `schema.prisma`'s `directUrl` needs separately; it was added by hand, set to the same value as the integration's `DATABASE_URL_UNPOOLED`.
 - **File storage**: Vercel Blob store, provisioned per-project (`BLOB_READ_WRITE_TOKEN`, already set across all three environments).
 - **Build step — Prisma + Vercel's dependency cache**: Vercel caches `node_modules` between builds, which skips Prisma's normal generate-on-install step and leaves a stale/missing Prisma Client, failing the build with `PrismaClientInitializationError`. Fixed by a `"postinstall": "prisma generate"` script in `package.json` — required for any Prisma-using project deployed to Vercel, not optional.
-- **Environment variables**: `DATABASE_URL`, `DIRECT_URL`, `BLOB_READ_WRITE_TOKEN`, `AUTH_SECRET`, `AUTH_URL`, `EMAIL_PROVIDER`, `EMAIL_FROM`, `RESEND_API_KEY` (Production only), Mailtrap's `MAILTRAP_HOST`/`MAILTRAP_PORT`/`MAILTRAP_USER`/`MAILTRAP_PASS` (Preview/Development only) — see "Email delivery: environments" above for exactly which environment gets which email vars. `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` are not yet set anywhere (see "Known gaps" below).
+- **Environment variables**: `DATABASE_URL`, `DIRECT_URL`, `BLOB_READ_WRITE_TOKEN`, `AUTH_SECRET`, `AUTH_URL`, `EMAIL_PROVIDER`, `EMAIL_FROM`, `RESEND_API_KEY` (Production only), Mailtrap's `MAILTRAP_HOST`/`MAILTRAP_PORT`/`MAILTRAP_USER`/`MAILTRAP_PASS` (Preview/Development only) — see "Email delivery: environments" above for exactly which environment gets which email vars. `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` are not yet set anywhere (see "Known gaps" below). `CRON_SECRET` (verifies Vercel Cron's calls to `/api/cron/expiry-notifications`) and `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT`/`NEXT_PUBLIC_VAPID_PUBLIC_KEY` (Web Push, generated once via `npx web-push generate-vapid-keys`) back the expiration notification system — see "Expiration notification" above.
 - **`AUTH_URL`** is Production-only and must match whatever domain Vercel actually assigns the project (not necessarily `<project-name>.vercel.app` — a name collision can force a suffixed domain, as happened here: `home-inventory-ecru.vercel.app`). It's read directly by `lib/email.ts` to build links inside verification/reset emails, so a stale value silently breaks those emails without erroring. Vercel bakes env vars into a deployment at build time, so a value change only takes effect after the next deploy.
 
 ### Known gaps
@@ -208,3 +227,6 @@ The app is live: **https://home-inventory-ecru.vercel.app** (Vercel project `hom
 - **Production, Preview, and Development currently share the same Neon database branch and the same `AUTH_SECRET` value.** Local development (`npm run dev`) and any future Preview deployment read and write the exact same data as the real production site — there is no isolation. The intended fix is a separate Neon branch (Neon's branching is built for exactly this, and stays within the free tier) scoped to Preview/Development, with its own `AUTH_SECRET`; discussed but deliberately deferred, not yet built.
 - **Rate limiting is not configured in any environment** — `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` are unset, so `register`/`login`/`forgot-password` are unthrottled everywhere, including Production (`lib/rate-limit.ts` no-ops without them by design, so this fails open rather than breaking the app).
 - **Email deliverability is baseline** — `EMAIL_FROM` uses Resend's shared `onboarding@resend.dev` sender rather than a verified custom domain, so first-send mail may land in spam.
+- **Expiration notifications are a once-daily batch, not instantaneous** — Vercel Cron on the Hobby tier only supports once-a-day granularity, so "real-time" here means "checked once a day and delivered same-day," not push-the-moment-a-threshold-is-crossed. Upgrading to Pro would allow a finer schedule.
+- **Push notification subscriptions are per-device**, not account-wide — enabling push on one browser doesn't show as "on" when the same user checks Settings on another device/browser. A cross-device "manage devices" view isn't built.
+- **No custom app icon exists yet** — the service worker's `showNotification()` omits a custom icon (the browser's default is used) since `public/` has no icon assets; a proper icon can be added later without touching the notification mechanics.

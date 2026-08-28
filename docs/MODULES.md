@@ -45,19 +45,19 @@ Each module below owns a slice of the app: its pages/routes, its components, and
 
 ## Dashboard module
 
-**Responsibility**: at-a-glance category counts and the combined warranty/AMC expiration banner.
+**Responsibility**: at-a-glance category counts and the combined warranty/AMC expiration banner, kept live while open.
 
-- **Routes/pages**: `(protected)/dashboard`.
-- **Key components**: `CategoryCountCard`, `ExpirationBanner` (shows both warranty and AMC contract expirations, e.g. "3 warranties + 2 AMCs expire this month").
-- **Data**: reads aggregated counts from `Item`/`Category`; expiring warranties from `Item.warrantyExpiration` and expiring AMC contracts from `AmcContract.endDate`; reads `UserPreferences.warrantyNotificationsEnabled` and `UserPreferences.amcNotificationsEnabled` to decide whether each half of the banner shows.
+- **Routes/pages**: `(protected)/dashboard`, `GET /api/notifications/expiring` (polled by the banner).
+- **Key components**: `CategoryCountCard`, `ExpirationBanner` (shows both warranty and AMC contract expirations, e.g. "3 items need attention (2 expiring soon, 1 expired)"; polls every 60s, paused while the tab is hidden).
+- **Data**: reads aggregated counts from `Item`/`Category`; expiring/expired warranties and AMC contracts via `lib/expiring-entries.ts`'s `getExpiringEntries()` (shared with the polling route), which itself uses `lib/expiry.ts`'s canonical thresholds (30/7/1 days) and reads `UserPreferences.warrantyNotificationsEnabled`/`amcNotificationsEnabled` to decide whether each half of the banner shows. See `docs/ARCHITECTURE.md`'s "Expiration notification" for the full picture including the daily email/push digest.
 
 ## Settings module
 
-**Responsibility**: toggle warranty and AMC expiration notifications on/off independently; account/password management; sign out (the only sign-out entry point in the app).
+**Responsibility**: toggle warranty/AMC/email/push expiration notifications on/off independently; account/password management; sign out (the only sign-out entry point in the app).
 
-- **Routes/pages**: `(protected)/settings`, `/api/settings`.
-- **Key components**: two notification toggle switches (warranty, AMC), password-change form, log out button (calls Auth.js's `signOut()`, see `docs/API.md`'s `/api/auth/[...nextauth]` entry).
-- **Data**: `UserPreferences` (warrantyNotificationsEnabled, amcNotificationsEnabled).
+- **Routes/pages**: `(protected)/settings`, `/api/settings`, `/api/push/subscribe`.
+- **Key components**: four notification controls (warranty banner, AMC banner, email digest — all account-wide `UserPreferences` toggles — plus `PushNotificationToggle`, a per-device browser-push enable/disable control backed by a `PushSubscription` row, not `UserPreferences`), password-change form, log out button (calls Auth.js's `signOut()`, see `docs/API.md`'s `/api/auth/[...nextauth]` entry).
+- **Data**: `UserPreferences` (warrantyNotificationsEnabled, amcNotificationsEnabled, emailNotificationsEnabled); `PushSubscription` (one row per subscribed browser/device).
 
 ## Data model (Prisma schema)
 
@@ -77,6 +77,8 @@ model User {
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens    PasswordResetToken[]
   amcContracts           AmcContract[]
+  pushSubscriptions      PushSubscription[]
+  expiryNotificationLogs ExpiryNotificationLog[]
 }
 
 model EmailVerificationToken {
@@ -108,6 +110,7 @@ model UserPreferences {
   user                          User    @relation(fields: [userId], references: [id])
   warrantyNotificationsEnabled  Boolean @default(true)
   amcNotificationsEnabled       Boolean @default(true)
+  emailNotificationsEnabled     Boolean @default(true)
 }
 
 model Category {
@@ -184,6 +187,44 @@ model AmcContract {
   @@index([itemId])
   @@index([userId, endDate])
 }
+
+enum ExpirySourceType {
+  WARRANTY
+  AMC
+}
+
+enum NotificationChannel {
+  EMAIL
+  PUSH
+}
+
+model PushSubscription {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model ExpiryNotificationLog {
+  id            String              @id @default(cuid())
+  userId        String
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceType    ExpirySourceType
+  sourceId      String
+  thresholdDays Int
+  channel       NotificationChannel
+  sentAt        DateTime            @default(now())
+
+  @@unique([userId, sourceType, sourceId, thresholdDays, channel])
+  @@index([userId])
+}
 ```
 
 Auth.js's required `Account`, `Session`, and `VerificationToken` models (from `@auth/prisma-adapter`) are appended to this schema as-is when the project is scaffolded.
@@ -194,4 +235,5 @@ Auth.js's required `Account`, `Session`, and `VerificationToken` models (from `@
 - Deleting an `Item` cascades to delete its `Attachment` rows (the corresponding Blob objects are deleted alongside, via application logic in the Attachments module).
 - `AmcContract` holds its own document fields (`documentBlobUrl`/`documentFileName`/`documentMimeType`/`documentSizeBytes`) rather than reusing `Attachment`, since `Attachment` only has a foreign key to `Item` — one contract has exactly one document, so it doesn't need a separate child table. `userId` is denormalized onto `AmcContract` (set server-side from the parent item, never client-supplied) purely so the "AMC contracts expiring this month" dashboard query can use `@@index([userId, endDate])` directly, mirroring `Item`'s own `@@index([userId, warrantyExpiration])` — ownership checks still always join through `item: { userId }`, the same as `Attachment`, so the denormalized column is never the source of truth for authorization. Deleting an `Item` cascades to delete its `AmcContract` rows (its Blob document, if any, is deleted alongside via application logic, same as `Attachment`).
 - `User.emailVerified` is `null` until the user clicks their verification link; the Credentials login flow rejects sign-in while it's `null`.
+- `PushSubscription` is one row per browser/device a user has enabled push notifications on (not account-wide) — `endpoint` is globally unique per the Web Push spec, so it doubles as the natural upsert key. `ExpiryNotificationLog` records exactly which `(user, source, threshold, channel)` combination has already been notified, structurally preventing the same threshold from firing twice — see `docs/ARCHITECTURE.md`'s "Expiration notification".
 - `EmailVerificationToken` and `PasswordResetToken` rows are single-use and time-limited (`expiresAt`); a token is deleted or marked consumed (`usedAt`) once used, and a stale/expired token is simply rejected rather than reused.
