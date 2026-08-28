@@ -25,7 +25,7 @@ The app is live on Vercel: **https://home-inventory-ecru.vercel.app** (`npm run 
 - The bottom tab bar (`NavBar`) renders on every `(protected)` route, including Item Detail/Create/Edit — `docs/DESIGN.md` specs those as tab-bar-free "pushed screens." Needs a decision on whether to make the layout conditional before fixing.
 - The Item List still doesn't visually highlight soon-expiring warranties (Item Detail does, as of a recent fix — see `docs/DESIGN.md`'s Item Detail section).
 - Replacing an existing receipt/warranty file uses a native `confirm()`/`prompt()` dialog rather than an in-page control.
-- Email deliverability is baseline (`onboarding@resend.dev`, no verified custom domain) — first-send mail may land in spam.
+- Email sends from a verified custom domain (`noreply@liveosoft.com`, liveosoft.com verified in Resend as of 2026-08-28) — Resend's shared `onboarding@resend.dev` sender is no longer used, and delivery is no longer restricted to the Resend account's own address.
 - Expiration notifications (email + push) run once daily via Vercel Cron — Hobby tier caps cron at once/day, so this isn't instantaneous. See `docs/ARCHITECTURE.md`'s "Expiration notification" section.
 - Push notification subscriptions are per-device, not account-wide — no cross-device "manage devices" view exists.
 - No app/notification icon asset exists yet (`public/` only has `sw.js`) — push notifications use the browser's default icon.
