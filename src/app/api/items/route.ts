@@ -44,22 +44,33 @@ export async function POST(req: NextRequest) {
   const parsed = createItemSchema.safeParse(body);
   if (!parsed.success) return jsonError(400, parsed.error.issues[0]?.message ?? 'Invalid input');
 
-  const { attachments, ...itemData } = parsed.data;
+  const { attachments, amcContracts, ...itemData } = parsed.data;
+  const userId = session.user.id;
 
   const category = await db.category.findFirst({
-    where: { id: itemData.categoryId, userId: session.user.id },
+    where: { id: itemData.categoryId, userId },
   });
   if (!category) return jsonError(404, 'Category not found');
 
   const item = await db.item.create({
     data: {
       ...itemData,
-      userId: session.user.id,
+      userId,
       purchaseDate: itemData.purchaseDate ? new Date(itemData.purchaseDate) : null,
       warrantyExpiration: itemData.warrantyExpiration ? new Date(itemData.warrantyExpiration) : null,
       attachments: attachments ? { create: attachments } : undefined,
+      amcContracts: amcContracts
+        ? {
+            create: amcContracts.map((c) => ({
+              ...c,
+              userId,
+              startDate: c.startDate ? new Date(c.startDate) : null,
+              endDate: c.endDate ? new Date(c.endDate) : null,
+            })),
+          }
+        : undefined,
     },
-    include: { attachments: true },
+    include: { attachments: true, amcContracts: true },
   });
 
   return NextResponse.json(item, { status: 201 });

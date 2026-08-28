@@ -25,6 +25,7 @@ model User {
   accounts                Account[]
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens     PasswordResetToken[]
+  amcContracts            AmcContract[]
 }
 
 model EmailVerificationToken {
@@ -55,6 +56,7 @@ model UserPreferences {
   userId                       String  @unique
   user                         User    @relation(fields: [userId], references: [id])
   warrantyNotificationsEnabled Boolean @default(true)
+  amcNotificationsEnabled      Boolean @default(true)
 }
 
 model Category {
@@ -85,6 +87,7 @@ model Item {
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   attachments        Attachment[]
+  amcContracts       AmcContract[]
 
   @@index([userId, categoryId])
   @@index([userId, warrantyExpiration])
@@ -108,6 +111,27 @@ model Attachment {
   createdAt DateTime       @default(now())
 
   @@index([itemId, type])
+}
+
+model AmcContract {
+  id                String    @id @default(cuid())
+  itemId            String
+  item              Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User      @relation(fields: [userId], references: [id])
+  provider          String
+  cost              Decimal?  @db.Decimal(10, 2)
+  startDate         DateTime?
+  endDate           DateTime?
+  documentBlobUrl   String?
+  documentFileName  String?
+  documentMimeType  String?
+  documentSizeBytes Int?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([itemId])
+  @@index([userId, endDate])
 }
 
 // --- Auth.js (@auth/prisma-adapter) required models ---

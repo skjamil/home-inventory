@@ -1,6 +1,6 @@
 # API Reference — Home Inventory Manager
 
-All routes except `/api/auth/*` require an authenticated session — each route checks this itself (see "Route protection" in `docs/ARCHITECTURE.md`); unauthenticated requests receive `401 Unauthorized`. All request/response bodies are JSON unless noted. `register`, `resend-verification`, the credentials login callback, and `forgot-password` are additionally rate-limited (Upstash Redis) since they're public and unauthenticated — repeated abuse returns `429 Too Many Requests`.
+All routes except `/api/auth/*` require an authenticated session — each route checks this itself (see "Route protection" in `docs/ARCHITECTURE.md`); unauthenticated requests receive `401 Unauthorized`. All request/response bodies are JSON unless noted. `register`, `resend-verification`, the credentials login callback, and `forgot-password` are additionally rate-limited (Upstash Redis) since they're public and unauthenticated — repeated abuse returns `429 Too Many Requests`. Every endpoint below that accepts an `email` normalizes it (trimmed + lowercased) before matching or storing it, so registration, login, and password reset are all case-insensitive on email.
 
 ## Auth
 
@@ -42,12 +42,12 @@ Requests a password-reset email.
 Completes a password reset.
 - **Auth required**: no.
 - **Request body**: `{ token: string, newPassword: string }`
-- **Behavior**: validates the token, updates `passwordHash`, marks the token used, invalidates existing sessions for that user.
+- **Behavior**: validates the token, updates `passwordHash`, marks the token used. Does **not** force-revoke an existing session elsewhere — sessions are signed JWTs, not database-backed, so a session issued before the reset stays valid until it naturally expires (see the Auth row in `docs/ARCHITECTURE.md`'s tech stack table).
 - **Response**: `200 { message: "Password updated" }`
 - **Errors**: `400` invalid/expired/already-used token or weak password.
 
 ### `POST /api/auth/[...nextauth]` (and related NextAuth routes: `/api/auth/signin`, `/api/auth/session`, `/api/auth/signout`)
-Handled entirely by Auth.js. `signIn("credentials", { email, password })` on the client posts credentials; on success a database session cookie is set.
+Handled entirely by Auth.js. `signIn("credentials", { email, password })` on the client posts credentials; on success a signed JWT session cookie is set (not a database session — see the Auth row in `docs/ARCHITECTURE.md`'s tech stack table). `signOut()` (used by the Settings screen's Log out action) clears it via `/api/auth/signout`.
 
 - **Auth required**: no (this is the login mechanism itself).
 - **Rate limited**: yes.
@@ -95,23 +95,23 @@ List items, optionally filtered.
 - **Response**: `200 [{ id, name, categoryId, category: {name}, purchaseDate, price, warrantyExpiration, serialNumber, location, createdAt }]`
 
 ### `POST /api/items`
-Create an item, optionally with attachments created in the same request.
-- **Request body**: `{ name, categoryId, purchaseDate?, price?, warrantyExpiration?, serialNumber?, location?, notes?, attachments?: [{ blobUrl, fileName, mimeType, sizeBytes, type }] }`
-- **Response**: `201` full item object including nested `attachments`.
+Create an item, optionally with attachments and AMC contracts created in the same request.
+- **Request body**: `{ name, categoryId, purchaseDate?, price?, warrantyExpiration?, serialNumber?, location?, notes?, attachments?: [{ blobUrl, fileName, mimeType, sizeBytes, type }], amcContracts?: [{ provider, cost?, startDate?, endDate?, documentBlobUrl?, documentFileName?, documentMimeType?, documentSizeBytes? }] }`
+- **Response**: `201` full item object including nested `attachments` and `amcContracts`.
 - **Errors**: `400` validation failure (e.g. missing name/categoryId); `404` if `categoryId` doesn't belong to the user.
 
 ### `GET /api/items/[id]`
-Fetch one item with its attachments.
-- **Response**: `200` item object including `attachments: [{ id, type, blobUrl, fileName, mimeType, sizeBytes }]`
+Fetch one item with its attachments and AMC contracts.
+- **Response**: `200` item object including `attachments: [{ id, type, blobUrl, fileName, mimeType, sizeBytes }]` and `amcContracts: [{ id, provider, cost, startDate, endDate, documentBlobUrl, documentFileName, documentMimeType, documentSizeBytes }]`
 - **Errors**: `404` not found or not owned by user.
 
 ### `PATCH /api/items/[id]`
-Update item fields (same shape as create, all fields optional).
+Update item fields (same shape as create, all fields optional). `attachments` and `amcContracts` in the request body are ignored — both are managed through their own dedicated endpoints, not through this route.
 - **Response**: `200` updated item.
 - **Errors**: `400` validation; `404` not found.
 
 ### `DELETE /api/items/[id]`
-Delete an item and its attachments (DB rows and corresponding Blob objects).
+Delete an item, its attachments, and its AMC contracts (DB rows and corresponding Blob objects, including each AMC contract's document).
 - **Response**: `204`
 - **Errors**: `404` not found.
 
@@ -128,16 +128,41 @@ Remove an attachment (deletes the Blob object and the DB row).
 - **Response**: `204`
 - **Errors**: `404` not found.
 
+## AMC Contracts
+
+An Annual Maintenance Contract (AMC) is a paid, renewable service contract with a vendor — distinct from `Item.warrantyExpiration`. An item can have a history of many contracts over time.
+
+### `GET /api/items/[id]/amc`
+List an item's AMC contracts, most recent `startDate` first.
+- **Response**: `200 [{ id, itemId, userId, provider, cost, startDate, endDate, documentBlobUrl, documentFileName, documentMimeType, documentSizeBytes, createdAt, updatedAt }]`
+- **Errors**: `404` item not found or not owned by user.
+
+### `POST /api/items/[id]/amc`
+Create an AMC contract for an item.
+- **Request body**: `{ provider, cost?, startDate?, endDate?, documentBlobUrl?, documentFileName?, documentMimeType?, documentSizeBytes? }` — the four `document*` fields must be provided together or not at all.
+- **Response**: `201` created contract.
+- **Errors**: `400` validation failure (e.g. missing provider, or a partial document); `404` item not found.
+
+### `PATCH /api/items/[id]/amc/[amcId]`
+Update an AMC contract (same shape as create, all fields optional). Replacing `documentBlobUrl` with a different value deletes the previous Blob object.
+- **Response**: `200` updated contract.
+- **Errors**: `400` validation; `404` not found.
+
+### `DELETE /api/items/[id]/amc/[amcId]`
+Remove an AMC contract (deletes its Blob document, if any, and the DB row).
+- **Response**: `204`
+- **Errors**: `404` not found.
+
 ## Settings
 
 ### `GET /api/settings`
 Fetch the current user's preferences.
-- **Response**: `200 { warrantyNotificationsEnabled: boolean }`
+- **Response**: `200 { warrantyNotificationsEnabled: boolean, amcNotificationsEnabled: boolean }`
 
 ### `PATCH /api/settings`
-Update preferences.
-- **Request body**: `{ warrantyNotificationsEnabled: boolean }`
-- **Response**: `200 { warrantyNotificationsEnabled: boolean }`
+Update preferences. Either field may be omitted to leave it unchanged.
+- **Request body**: `{ warrantyNotificationsEnabled?: boolean, amcNotificationsEnabled?: boolean }`
+- **Response**: `200 { warrantyNotificationsEnabled: boolean, amcNotificationsEnabled: boolean }`
 
 ## Account
 

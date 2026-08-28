@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Field } from '@/components/ui/Field';
 import { Button } from '@/components/ui/Button';
 import { FileCaptureInput } from '@/components/upload/FileCaptureInput';
+import { AmcContractsField, type AmcContractDraft } from '@/components/items/AmcContractsField';
 import type { UploadedFile } from '@/lib/upload-client';
 
 interface Category {
@@ -13,6 +14,17 @@ interface Category {
 }
 interface Attachment extends UploadedFile {
   id?: string;
+}
+interface InitialAmcContract {
+  id: string;
+  provider: string;
+  cost: number | string | null;
+  startDate: string | null;
+  endDate: string | null;
+  documentBlobUrl: string | null;
+  documentFileName: string | null;
+  documentMimeType: string | null;
+  documentSizeBytes: number | null;
 }
 interface ItemFormProps {
   mode: 'create' | 'edit';
@@ -27,6 +39,7 @@ interface ItemFormProps {
     location: string | null;
     notes: string | null;
     attachments: Attachment[];
+    amcContracts: InitialAmcContract[];
   };
 }
 
@@ -49,6 +62,21 @@ export function ItemForm({ mode, itemId, initial }: ItemFormProps) {
   const [photos, setPhotos] = useState<Attachment[]>(existing.filter((a) => a.type === 'PHOTO'));
   const [receipt, setReceipt] = useState<Attachment[]>(existing.filter((a) => a.type === 'RECEIPT'));
   const [warrantyDoc, setWarrantyDoc] = useState<Attachment[]>(existing.filter((a) => a.type === 'WARRANTY'));
+
+  const [amcContracts, setAmcContracts] = useState<AmcContractDraft[]>(
+    (initial?.amcContracts ?? []).map((c) => ({
+      _key: c.id,
+      id: c.id,
+      provider: c.provider,
+      cost: c.cost != null ? String(c.cost) : '',
+      startDate: toDateInput(c.startDate),
+      endDate: toDateInput(c.endDate),
+      documentBlobUrl: c.documentBlobUrl,
+      documentFileName: c.documentFileName,
+      documentMimeType: c.documentMimeType,
+      documentSizeBytes: c.documentSizeBytes,
+    }))
+  );
 
   const [saving, setSaving] = useState(false);
 
@@ -121,7 +149,21 @@ export function ItemForm({ mode, itemId, initial }: ItemFormProps) {
       serialNumber: serial || null,
       location: location || null,
       notes: notes || null,
-      ...(mode === 'create' ? { attachments: [...photos, ...receipt, ...warrantyDoc] } : {}),
+      ...(mode === 'create'
+        ? {
+            attachments: [...photos, ...receipt, ...warrantyDoc],
+            amcContracts: amcContracts.map((c) => ({
+              provider: c.provider,
+              cost: c.cost ? Number(c.cost) : null,
+              startDate: c.startDate ? new Date(c.startDate).toISOString() : null,
+              endDate: c.endDate ? new Date(c.endDate).toISOString() : null,
+              documentBlobUrl: c.documentBlobUrl,
+              documentFileName: c.documentFileName,
+              documentMimeType: c.documentMimeType,
+              documentSizeBytes: c.documentSizeBytes,
+            })),
+          }
+        : {}),
     };
 
     const res =
@@ -208,6 +250,10 @@ export function ItemForm({ mode, itemId, initial }: ItemFormProps) {
         <span className="text-xs font-semibold text-text-secondary">Warranty document</span>
         <FileCaptureInput type="WARRANTY" value={warrantyDoc} onChange={(list) => handleAttachmentChange(list, warrantyDoc, setWarrantyDoc)} />
       </div>
+
+      <div className="h-px bg-border" />
+
+      <AmcContractsField mode={mode} itemId={itemId} value={amcContracts} onChange={setAmcContracts} />
 
       <Button type="submit" disabled={!canSave} className="mt-2">
         {saving ? 'Saving…' : 'Save item'}

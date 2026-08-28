@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 
 export default function SettingsPage() {
   const [notifOn, setNotifOn] = useState(true);
+  const [amcNotifOn, setAmcNotifOn] = useState(true);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [message, setMessage] = useState<string | null>(null);
@@ -16,16 +17,19 @@ export default function SettingsPage() {
   useEffect(() => {
     fetch('/api/settings')
       .then((r) => r.json())
-      .then((d) => setNotifOn(d.warrantyNotificationsEnabled));
+      .then((d) => {
+        setNotifOn(d.warrantyNotificationsEnabled);
+        setAmcNotifOn(d.amcNotificationsEnabled);
+      });
   }, []);
 
-  async function toggleNotif() {
-    const next = !notifOn;
-    setNotifOn(next); // optimistic
+  async function toggle(field: 'warrantyNotificationsEnabled' | 'amcNotificationsEnabled', current: boolean, setter: (v: boolean) => void) {
+    const next = !current;
+    setter(next); // optimistic
     await fetch('/api/settings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ warrantyNotificationsEnabled: next }),
+      body: JSON.stringify({ [field]: next }),
     });
   }
 
@@ -64,9 +68,23 @@ export default function SettingsPage() {
               <span className="text-xs text-text-secondary">Shown on the dashboard when a warranty expires this month.</span>
             </div>
             <button
-              onClick={toggleNotif}
+              onClick={() => toggle('warrantyNotificationsEnabled', notifOn, setNotifOn)}
               className="flex w-11 flex-shrink-0 items-center rounded-full p-0.5 transition-colors"
               style={{ height: 26, background: notifOn ? 'var(--accent)' : 'var(--border)', justifyContent: notifOn ? 'flex-end' : 'flex-start' }}
+            >
+              <div className="h-5 w-5 rounded-full bg-white shadow" />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between gap-3.5 rounded-card border border-border bg-surface p-3.5">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm font-semibold">AMC expiration banner</span>
+              <span className="text-xs text-text-secondary">Shown on the dashboard when an AMC contract expires this month.</span>
+            </div>
+            <button
+              onClick={() => toggle('amcNotificationsEnabled', amcNotifOn, setAmcNotifOn)}
+              className="flex w-11 flex-shrink-0 items-center rounded-full p-0.5 transition-colors"
+              style={{ height: 26, background: amcNotifOn ? 'var(--accent)' : 'var(--border)', justifyContent: amcNotifOn ? 'flex-end' : 'flex-start' }}
             >
               <div className="h-5 w-5 rounded-full bg-white shadow" />
             </button>

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { createAmcContractSchema } from './amc';
 
 // Only name + category are required — see docs/DESIGN.md's "low friction" principle.
 const attachmentInput = z.object({
@@ -19,6 +20,7 @@ export const createItemSchema = z.object({
   location: z.string().max(200).optional().nullable(),
   notes: z.string().max(2000).optional().nullable(),
   attachments: z.array(attachmentInput).optional(),
+  amcContracts: z.array(createAmcContractSchema).optional(),
 });
 
 export const updateItemSchema = createItemSchema.partial();

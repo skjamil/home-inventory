@@ -11,7 +11,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
   const item = await db.item.findFirst({
     where: { id: params.id, userId: session.user.id },
-    include: { attachments: true, category: { select: { name: true } } },
+    include: { attachments: true, amcContracts: true, category: { select: { name: true } } },
   });
   if (!item) return jsonError(404, 'Item not found');
 
@@ -29,7 +29,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const parsed = updateItemSchema.safeParse(body);
   if (!parsed.success) return jsonError(400, parsed.error.issues[0]?.message ?? 'Invalid input');
 
-  const { attachments: _attachments, ...itemData } = parsed.data;
+  const { attachments: _attachments, amcContracts: _amcContracts, ...itemData } = parsed.data;
 
   if (itemData.categoryId) {
     const category = await db.category.findFirst({
@@ -45,7 +45,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       purchaseDate: itemData.purchaseDate ? new Date(itemData.purchaseDate) : undefined,
       warrantyExpiration: itemData.warrantyExpiration ? new Date(itemData.warrantyExpiration) : undefined,
     },
-    include: { attachments: true },
+    include: { attachments: true, amcContracts: true },
   });
 
   return NextResponse.json(item);
@@ -57,12 +57,15 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
 
   const existing = await db.item.findFirst({
     where: { id: params.id, userId: session.user.id },
-    include: { attachments: true },
+    include: { attachments: true, amcContracts: true },
   });
   if (!existing) return jsonError(404, 'Item not found');
 
-  await Promise.allSettled(existing.attachments.map((a) => del(a.blobUrl)));
-  await db.item.delete({ where: { id: existing.id } }); // cascades to Attachment rows
+  await Promise.allSettled([
+    ...existing.attachments.map((a) => del(a.blobUrl)),
+    ...existing.amcContracts.filter((c) => c.documentBlobUrl).map((c) => del(c.documentBlobUrl!)),
+  ]);
+  await db.item.delete({ where: { id: existing.id } }); // cascades to Attachment + AmcContract rows
 
   return new NextResponse(null, { status: 204 });
 }

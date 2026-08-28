@@ -9,7 +9,11 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
   const session = await auth();
   const item = await db.item.findFirst({
     where: { id: params.id, userId: session!.user!.id! },
-    include: { attachments: true, category: { select: { name: true } } },
+    include: {
+      attachments: true,
+      amcContracts: { orderBy: { startDate: 'desc' } },
+      category: { select: { name: true } },
+    },
   });
   if (!item) notFound();
 
@@ -79,6 +83,35 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
             <Row label="Location" value={item.location || '—'} />
             {item.notes && <Row label="Notes" value={item.notes} />}
           </div>
+        </div>
+
+        <div className="mt-5 flex flex-col gap-2.5">
+          <span className="text-[11px] font-bold uppercase tracking-wide text-text-secondary">AMC Contracts</span>
+          {item.amcContracts.length === 0 ? (
+            <span className="text-xs text-text-secondary">No AMC contracts on file.</span>
+          ) : (
+            item.amcContracts.map((c) => {
+              const warn = !!c.endDate && differenceInCalendarDays(c.endDate, new Date()) <= 30;
+              return (
+                <div key={c.id} className="rounded-card border border-border bg-surface p-3.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold">{c.provider}</span>
+                    {c.cost != null && (
+                      <span className="text-sm font-semibold">${Number(c.cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    )}
+                  </div>
+                  <div className={`text-xs ${warn ? 'text-warn-text' : 'text-text-secondary'}`}>
+                    {c.startDate ? new Date(c.startDate).toLocaleDateString() : '—'} – {c.endDate ? new Date(c.endDate).toLocaleDateString() : '—'}
+                  </div>
+                  {c.documentBlobUrl && (
+                    <div className="mt-2">
+                      <AttachmentRow attachment={{ blobUrl: c.documentBlobUrl, fileName: c.documentFileName ?? 'Contract document' }} label="contract document" />
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </div>

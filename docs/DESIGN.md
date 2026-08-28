@@ -56,25 +56,27 @@ This document covers screens, user flows, and layout. Data model lives in `MODUL
 
 ### Dashboard
 - Header with app name and avatar; navigation to Items / Categories / Settings is a **persistent bottom tab bar** (Home / Items / Categories / Settings) shown on all four root screens. Item Detail and Item Create/Edit are pushed screens instead — a back-arrow header, no tab bar — since they're reached by drilling into a root screen, not tab destinations themselves.
-- **Warranty banner** (top, only rendered if enabled and count > 0): "N warranties expire this month" with an expandable/linked list of the affected items (name, warranty date), linking to `/items?warrantyExpiringThisMonth=1`.
+- **Expiration banner** (top, only rendered if at least one half is enabled and the combined count > 0): a combined "N warranties + M AMCs expire this month" banner (either clause omitted if its count is 0) with an expandable, date-sorted list of the affected items — each row tagged "Warranty" or "AMC" and linking to `/items/[id]`. Warranty and AMC halves are gated independently by their own Settings toggle (`warrantyNotificationsEnabled`, `amcNotificationsEnabled`).
 - **Category count cards**: a grid of cards, one per category, showing category name and item count (mirrors the example: Electronics 12, Furniture 8, Tools 17, Kitchen 34, Storage 9). Tapping a card navigates to `/items?categoryId=...`.
 - Empty state (no items yet): a prompt to add the first item.
 
 ### Item List
-- Filter bar: horizontal category **chips** (All, one per category, plus an "Expiring" chip) rather than a dropdown — a single tap beats a two-step dropdown on mobile — plus text search (matches name/serial number). The "Expiring" chip is pre-selected when arriving from the dashboard banner.
+- Filter bar: category **chips** (All, one per category, plus an "Expiring" chip) rather than a dropdown — a single tap beats a two-step dropdown on mobile — plus text search (matches name/serial number). Chips wrap onto additional lines rather than scrolling horizontally, so every category stays visible without a swipe. The "Expiring" chip is pre-selected when arriving from the dashboard banner.
 - List/grid of `ItemCard`s: item name, category badge, thumbnail (first photo if present), warranty expiration (highlighted if within 30 days), price.
 - "Add item" button (floating action button on mobile, standard button on desktop) linking to `/items/new`.
 
 ### Item Detail
 - Item name and category at top, with Edit and Delete actions.
-- Field list: purchase date, price, warranty expiration, serial number, location, notes.
+- Field list: purchase date, price, warranty expiration, serial number, location, notes. Warranty expiration uses the same "highlighted if within 30 days" rule as the Item List (also covers an already-passed date) — a date further out renders as plain text, not a false alarm.
 - Photo gallery (thumbnail grid, tap to view full-size).
 - Receipt and Warranty document shown as labeled attachment cards (thumbnail if image, file icon + filename if PDF), tap to open/download.
-- Delete requires a confirmation step (irreversible — removes attachments too).
+- **AMC Contracts** section (full-width, below the photo/fields layout): a card per contract — provider, cost, start–end date range (same "highlighted if within 30 days" rule, applied to `endDate`), and a document link card if one is attached. Empty state: "No AMC contracts on file."
+- Delete requires a confirmation step (irreversible — removes attachments and AMC contracts too).
 
 ### Item Create / Edit (`ItemForm`)
 - Single-column form (mobile-first): Name*, Category* (dropdown, with an inline "add new category" option), Purchase date (date picker), Price (numeric input), Warranty expiration (date picker), Serial number, Location, Notes.
 - Attachment sections: Photos (multi-capture, shows thumbnails of already-added photos with a remove option), Receipt (single-capture, replaceable), Warranty document (single-capture, replaceable) — each using the shared camera/gallery control described below.
+- **AMC Contracts section** (`AmcContractsField`): a repeatable list of contract cards, the first add/edit/delete-in-place list in the app (distinct from the attach/detach-only Photo/Receipt/Warranty sections above). "+ Add contract" opens an inline form (Provider*, Cost, Start date, End date, a document field reusing the shared camera/gallery control) with explicit Save/Cancel — not save-on-blur, since it's multi-field. In edit mode, each Save/Delete hits the AMC API immediately; in create mode, contracts are held locally and submitted together with the new item.
 - Save / Cancel actions; Save is disabled until required fields (Name, Category) are filled.
 
 ### Categories
@@ -82,7 +84,7 @@ This document covers screens, user flows, and layout. Data model lives in `MODUL
 - "Add category" input at the top.
 
 ### Settings
-- Toggle switch: "Notify me when warranties are expiring this month" (bound to `warrantyNotificationsEnabled`).
+- Two toggle switches: "Warranty expiration banner" (bound to `warrantyNotificationsEnabled`) and "AMC expiration banner" (bound to `amcNotificationsEnabled`), independently controlling each half of the Dashboard's combined expiration banner.
 - Change password form (current password, new password, confirm).
 - Log out action, below the account form — the only sign-out entry point in the app.
 

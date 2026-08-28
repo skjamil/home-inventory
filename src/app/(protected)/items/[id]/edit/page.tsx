@@ -8,7 +8,7 @@ export default async function EditItemPage({ params }: { params: { id: string } 
   const session = await auth();
   const item = await db.item.findFirst({
     where: { id: params.id, userId: session!.user!.id! },
-    include: { attachments: true },
+    include: { attachments: true, amcContracts: { orderBy: { startDate: 'desc' } } },
   });
   if (!item) notFound();
 
@@ -43,6 +43,17 @@ export default async function EditItemPage({ params }: { params: { id: string } 
             mimeType: a.mimeType,
             sizeBytes: a.sizeBytes,
             type: a.type,
+          })),
+          amcContracts: item.amcContracts.map((c) => ({
+            id: c.id,
+            provider: c.provider,
+            cost: c.cost ? Number(c.cost) : null,
+            startDate: c.startDate?.toISOString() ?? null,
+            endDate: c.endDate?.toISOString() ?? null,
+            documentBlobUrl: c.documentBlobUrl,
+            documentFileName: c.documentFileName,
+            documentMimeType: c.documentMimeType,
+            documentSizeBytes: c.documentSizeBytes,
           })),
         }}
       />

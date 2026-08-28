@@ -13,15 +13,19 @@ Default to the most cost-efficient model capable of the task — do not reach fo
 
 ## Project state
 
-The Next.js app is scaffolded and builds cleanly (`npm run build` passes end-to-end: every page and API route compiles and type-checks). It has not been run against a real database yet — `.env.local` holds placeholder values so the dev server can start; a real `DATABASE_URL` (Neon/Vercel Postgres free tier) is needed before register/login/items actually work. `docs/` (the spec) and `design/` (the mockup canvas) predate the code and remain the source of truth for anything not yet built.
+The app is live on Vercel: **https://home-inventory-ecru.vercel.app** (`npm run build` passes end-to-end, and the production deployment is built/tested the same way). It's connected to a real, migrated Neon Postgres database, a real Vercel Blob store, and sends real verification/reset email via Resend in Production (Mailtrap sandbox in Preview/Development/local — see "Email delivery: environments" in `docs/ARCHITECTURE.md`). `docs/` (the spec) and `design/` (the mockup canvas) remain the source of truth for anything not yet built.
 
-**Commands**: `npm install`, `npm run dev` (dev server), `npm run build` (production build + typecheck + lint), `npm run lint`, `npx prisma generate` (regenerate the client after a schema change), `npx prisma migrate dev` (needs a real `DATABASE_URL`), `npx prisma studio`.
+**Commands**: `npm install`, `npm run dev` (dev server), `npm run build` (production build + typecheck + lint), `npm run lint`, `npx prisma generate` (regenerate the client after a schema change), `npx prisma migrate dev` (local schema iteration) / `npx prisma migrate deploy` (apply existing migrations to a target database, e.g. after `DATABASE_URL` changes), `npx prisma studio`. To redeploy: `git push`, then `vercel deploy --prod` (GitHub auto-deploy isn't connected yet — see `docs/ARCHITECTURE.md`'s "Deployment" section).
 
-**Known follow-ups from the initial build** (not yet done):
-- No real database has been connected/migrated — do that before testing any flow end-to-end.
-- Session strategy is JWT, not the database sessions originally planned — Auth.js's Credentials provider only supports JWT (see the Auth row below). One consequence: a password reset can't force-revoke an existing session; a token-versioning scheme would restore that, not built yet.
+**Known follow-ups** (not yet done):
+- **Production, Preview, and Development share the same Neon database and the same `AUTH_SECRET`.** Local dev and any future Preview deployment touch the exact same data as the real site — no isolation yet. Planned fix is a separate Neon branch (cheap/free via Neon's branching) for Preview/Development; discussed and deliberately deferred, not yet built.
+- Rate limiting (Upstash) isn't configured anywhere — `register`/`login`/`forgot-password` are unthrottled in every environment including Production.
+- Session strategy is JWT, not the database sessions originally planned — Auth.js's Credentials provider only supports JWT (see the Auth row in `docs/ARCHITECTURE.md`). One consequence: a password reset can't force-revoke an existing session; a token-versioning scheme would restore that, not built yet.
 - Route protection is layered (Edge middleware fast-path + real checks in `(protected)/layout.tsx` and every API route) rather than a single middleware check, because Prisma isn't Edge-compatible — see "Route protection" in `docs/ARCHITECTURE.md`.
-- A few UI/UX gaps flagged during a docs-vs-mockups review are still open (not blocking): warranty dates aren't visually highlighted when due soon; replacing an existing receipt/warranty file uses a native `confirm()`/`prompt()` dialog rather than an in-page control.
+- The bottom tab bar (`NavBar`) renders on every `(protected)` route, including Item Detail/Create/Edit — `docs/DESIGN.md` specs those as tab-bar-free "pushed screens." Needs a decision on whether to make the layout conditional before fixing.
+- The Item List still doesn't visually highlight soon-expiring warranties (Item Detail does, as of a recent fix — see `docs/DESIGN.md`'s Item Detail section).
+- Replacing an existing receipt/warranty file uses a native `confirm()`/`prompt()` dialog rather than an in-page control.
+- Email deliverability is baseline (`onboarding@resend.dev`, no verified custom domain) — first-send mail may land in spam.
 
 ## `docs/` is the source of truth — read before writing any app code
 

@@ -6,11 +6,11 @@
 |---|---|---|
 | Framework | Next.js (App Router) + TypeScript | Single app serves both UI and API routes — no separate backend to host, deploy, or keep in sync. |
 | Hosting | Vercel | First-class Next.js support; pairs directly with Vercel Postgres/Neon and Vercel Blob. |
-| Database | Postgres (Neon or Vercel Postgres) | Relational data (items, categories, attachments) with real relationships and query needs (e.g. "warranties expiring this month") — a proper relational DB is a natural fit. |
+| Database | Postgres (Neon, provisioned via Vercel's Marketplace integration) | Relational data (items, categories, attachments) with real relationships and query needs (e.g. "warranties expiring this month") — a proper relational DB is a natural fit. Provisioning through Vercel's Neon integration (rather than a standalone Neon account) auto-manages most connection env vars and keeps billing/access under the same Vercel team. |
 | ORM | Prisma | Schema-first migrations and a strongly-typed client suit this small, well-defined schema (User, Category, Item, Attachment); simpler day-to-day ergonomics than Drizzle for this scope. |
 | File storage | Vercel Blob | Binary files (photos, receipts, warranty PDFs) do not belong in Postgres rows; Blob gives direct client-to-storage uploads with signed tokens, avoiding server payload limits. |
 | Auth | Auth.js (NextAuth v5), Credentials provider, JWT sessions | Self-service, multi-user login: email+password registration, required email verification, and password reset. Sessions are JWTs, not database-backed — Auth.js's Credentials provider only supports JWT sessions (a hard library constraint, confirmed via a runtime `UnsupportedStrategy` error during implementation; database sessions require the OAuth-style account-linking flow that Credentials bypasses). One consequence: password reset can't force-revoke an existing session — a JWT stays valid until it expires. A token-versioning scheme would restore that property; not built yet. Credentials (not magic links) keeps day-to-day login free of email round-trips — email is only needed for the verification/reset side flows. |
-| Transactional email | Resend (production), Mailtrap via `nodemailer` (local dev) | Verification and password-reset emails require sending mail, a capability the app didn't previously need. Resend has a simple API and integrates cleanly with Vercel/Next.js; scoped strictly to these two auth flows — it is **not** used for warranty notifications, which stay in-app only. Mailtrap's sandbox inbox stands in during local development so testing never risks a real delivery or requires a live Resend account — see "Local development — email testing" below. |
+| Transactional email | Resend (Production), Mailtrap via `nodemailer` (Preview, Development, and local dev) | Verification and password-reset emails require sending mail, a capability the app didn't previously need. Resend has a simple API and integrates cleanly with Vercel/Next.js; scoped strictly to these two auth flows — it is **not** used for warranty notifications, which stay in-app only. Mailtrap's sandbox inbox stands in for every non-Production environment so testing never risks a real delivery or requires burning Resend's free-tier quota — see "Email delivery: environments" below. |
 | Rate limiting | Upstash Redis + `@upstash/ratelimit` | The app is now publicly reachable with self-service registration, so `register`, `login`, and `forgot-password` need abuse protection. Vercel's serverless functions are stateless, so an in-memory counter wouldn't work across requests/instances — Upstash's Redis-backed limiter does. |
 | Styling | Tailwind CSS, mobile-first utility usage | Fast to build a form-heavy CRUD UI consistently; utility classes are unprefixed for the mobile layout by default, with `sm:`/`md:` overrides layered on for wider viewports — matching the app's mobile-first, camera-first design (see "Styling & responsive strategy" below). |
 | Validation | zod | Shared request/response validation between client forms and API routes. |
@@ -73,6 +73,7 @@ home-inventory/
         categories/route.ts, categories/[id]/route.ts
         items/route.ts, items/[id]/route.ts
         items/[id]/attachments/route.ts, items/[id]/attachments/[attId]/route.ts
+        items/[id]/amc/route.ts, items/[id]/amc/[amcId]/route.ts
         settings/route.ts
       (protected)/                            # route group, guarded by middleware
         dashboard/page.tsx
@@ -81,8 +82,8 @@ home-inventory/
         settings/page.tsx
     components/
       upload/FileCaptureInput.tsx, AttachmentUploader.tsx, AttachmentGallery.tsx
-      dashboard/CategoryCountCard.tsx, WarrantyBanner.tsx
-      items/ItemForm.tsx, ItemCard.tsx, ItemFilterBar.tsx
+      dashboard/CategoryCountCard.tsx, ExpirationBanner.tsx
+      items/ItemForm.tsx, ItemCard.tsx, ItemFilterBar.tsx, AmcContractsField.tsx
       layout/NavBar.tsx
     lib/
       db.ts            # Prisma client singleton
@@ -90,8 +91,9 @@ home-inventory/
       email.ts           # sends verification/reset emails via Resend (prod) or Mailtrap/nodemailer (dev)
       rate-limit.ts       # Upstash Redis rate limiter helper
       blob.ts           # Blob upload helper
-      warranty.ts        # "expiring this month" query
-      validations/item.ts, category.ts, auth.ts
+      warranty.ts        # "expiring this month" query, for warranties
+      amc.ts             # "expiring this month" query, for AMC contracts
+      validations/item.ts, category.ts, auth.ts, amc.ts
     middleware.ts        # protects (protected)/* and item/category/settings API routes
   .env.example
 ```
@@ -128,9 +130,9 @@ Protecting `(protected)/*` pages and the items/categories/settings/account/uploa
 2. **`(protected)/layout.tsx`** (Node runtime): calls `auth()` and redirects to `/login` if there's no valid session — this is the real page-level enforcement.
 3. **Every protected API route**: calls `auth()` itself and returns `401` if there's no valid session — this is the real route-level enforcement.
 
-### Warranty notification
-1. `lib/warranty.ts` queries items where `warrantyExpiration` falls between the start and end of the current calendar month.
-2. The dashboard server component runs this query only if the user's `warrantyNotificationsEnabled` preference is true, and renders the count/banner accordingly.
+### Expiration notification (warranty + AMC)
+1. `lib/warranty.ts` queries items where `warrantyExpiration` falls between the start and end of the current calendar month; `lib/amc.ts`'s `getExpiringAmcContracts` mirrors this exact shape for `AmcContract.endDate`, filtering on `AmcContract`'s denormalized `userId` (see the AMC Contracts model note in `docs/MODULES.md`).
+2. The dashboard server component runs each query independently, gated by its own preference (`warrantyNotificationsEnabled`, `amcNotificationsEnabled`), merges the results into a single date-sorted list, and passes it to `ExpirationBanner`, which renders one combined count/banner (e.g. "3 warranties + 2 AMCs expire this month") rather than two separate banners.
 
 ## Styling & responsive strategy
 
@@ -168,20 +170,41 @@ export default {
 
 The CSS variables themselves are defined once in `globals.css` under `:root` (light) and `@media (prefers-color-scheme: dark)` (dark), exactly as specified in `docs/DESIGN.md` — Tailwind classes like `bg-surface` or `text-warn-text` then resolve to the right value in either theme without any `dark:` variant needed for color. `dark:` prefixes are reserved for the rare case where something other than a color token must change between themes.
 
-## Local development — email testing
+## Email delivery: environments
 
 `lib/email.ts` supports two swappable transports rather than always hitting Resend:
 
-- **Production** (default): Resend's HTTP API, as described above.
-- **Local development**: SMTP via `nodemailer`, pointed at a [Mailtrap](https://mailtrap.io) Email Testing sandbox inbox. Mailtrap never actually delivers mail — it captures every message in a web UI (rendered HTML, headers, spam score) so verification/reset emails can be inspected and clicked through without a real inbox and without any risk of emailing a real address while iterating.
+- **Resend**: HTTP API, real delivery to real inboxes.
+- **Mailtrap**: SMTP via `nodemailer`, pointed at a [Mailtrap](https://mailtrap.io) Email Testing sandbox inbox. Mailtrap never actually delivers mail — it captures every message in a web UI (rendered HTML, headers, spam score) so verification/reset emails can be inspected and clicked through without a real inbox and without any risk of emailing a real address while iterating.
 
-The transport is selected by an `EMAIL_PROVIDER` env var (`resend` | `mailtrap`), defaulting to `mailtrap` when `NODE_ENV !== 'production'`. Both transports go through the same `sendVerificationEmail()` / `sendPasswordResetEmail()` functions, so the rest of the app never needs to know which one is active.
+The transport is selected by an `EMAIL_PROVIDER` env var (`resend` | `mailtrap`), falling back to `mailtrap` when `NODE_ENV !== 'production'` if unset. In this project `EMAIL_PROVIDER` is set explicitly per Vercel environment rather than left to that fallback:
 
-**Local-only env vars** (set in `.env.local`, not needed in production): `EMAIL_PROVIDER=mailtrap`, `MAILTRAP_HOST`, `MAILTRAP_PORT`, `MAILTRAP_USER`, `MAILTRAP_PASS` (from the sandbox inbox's SMTP credentials in the Mailtrap dashboard). If `MAILTRAP_USER`/`MAILTRAP_PASS` are left blank, `lib/email.ts` doesn't attempt to send at all — it logs the verification/reset link to the server console instead, so registration and password reset work end-to-end before Mailtrap is even set up.
+| Environment | `EMAIL_PROVIDER` | Sends to |
+|---|---|---|
+| Production (live site) | `resend` | Real inboxes, via a real `RESEND_API_KEY` |
+| Preview (Vercel) | `mailtrap` | Mailtrap sandbox only |
+| Development (Vercel) | `mailtrap` | Mailtrap sandbox only |
+| Local dev (`.env.local`) | `resend` | Real inboxes — set to match Production so `npm run dev` can also be used to test real delivery; switch it back to `mailtrap` locally if you'd rather not spend real-send quota while iterating. |
 
-## Deployment assumptions
+Both transports go through the same `sendVerificationEmail()` / `sendPasswordResetEmail()` functions, so the rest of the app never needs to know which one is active. `EMAIL_FROM` (`Home Inventory <onboarding@resend.dev>` everywhere) uses Resend's shared sender identity — no custom domain verification has been done, so deliverability is baseline and mail may land in spam on a first send; verifying a real domain in Resend is a future improvement, not required to send.
+
+**Mailtrap env vars** (`MAILTRAP_HOST`, `MAILTRAP_PORT`, `MAILTRAP_USER`, `MAILTRAP_PASS`) are only read when `EMAIL_PROVIDER=mailtrap`. If they're left blank, `lib/email.ts` doesn't attempt to send at all — it logs the verification/reset link to the server console instead, so registration and password reset work end-to-end before Mailtrap is even set up.
+
+**Known gap**: local dev's `EMAIL_PROVIDER=resend` means running `npm run dev` and registering sends a real email through the same Resend account/quota as Production — there's no environment-level separation between "testing locally" and "a real user registering." Acceptable for a single-developer hobby project at this stage; revisit if that stops being true.
+
+## Deployment
+
+The app is live: **https://home-inventory-ecru.vercel.app** (Vercel project `home-inventory`, team `jamils-projects-6bdde949`). Deploys are currently manual (`vercel deploy --prod`) — the GitHub repo (`skjamil/home-inventory`) is not yet connected for auto-deploy-on-push; that requires installing the Vercel GitHub App via the dashboard (Project → Settings → Git), a one-time browser/OAuth step nobody has completed yet.
 
 - **Host**: Vercel.
-- **Database**: Neon or Vercel Postgres (serverless-friendly connection pooling).
-- **File storage**: Vercel Blob store, provisioned per-project.
-- **Environment variables**: `DATABASE_URL`, `DIRECT_URL`, `BLOB_READ_WRITE_TOKEN`, `AUTH_SECRET`, `AUTH_URL`, `RESEND_API_KEY`, `EMAIL_FROM`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`. (Mailtrap's SMTP vars are local-development-only — see "Local development — email testing" above — and aren't part of the production deployment.)
+- **Database**: Neon, provisioned via Vercel's Marketplace integration (see the Database row in the tech stack table above). The integration auto-manages `DATABASE_URL` (pooled) plus a batch of `PG*`/`POSTGRES_*`/`DATABASE_URL_UNPOOLED` vars across Production/Preview/Development — but **not** `DIRECT_URL`, which `schema.prisma`'s `directUrl` needs separately; it was added by hand, set to the same value as the integration's `DATABASE_URL_UNPOOLED`.
+- **File storage**: Vercel Blob store, provisioned per-project (`BLOB_READ_WRITE_TOKEN`, already set across all three environments).
+- **Build step — Prisma + Vercel's dependency cache**: Vercel caches `node_modules` between builds, which skips Prisma's normal generate-on-install step and leaves a stale/missing Prisma Client, failing the build with `PrismaClientInitializationError`. Fixed by a `"postinstall": "prisma generate"` script in `package.json` — required for any Prisma-using project deployed to Vercel, not optional.
+- **Environment variables**: `DATABASE_URL`, `DIRECT_URL`, `BLOB_READ_WRITE_TOKEN`, `AUTH_SECRET`, `AUTH_URL`, `EMAIL_PROVIDER`, `EMAIL_FROM`, `RESEND_API_KEY` (Production only), Mailtrap's `MAILTRAP_HOST`/`MAILTRAP_PORT`/`MAILTRAP_USER`/`MAILTRAP_PASS` (Preview/Development only) — see "Email delivery: environments" above for exactly which environment gets which email vars. `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` are not yet set anywhere (see "Known gaps" below).
+- **`AUTH_URL`** is Production-only and must match whatever domain Vercel actually assigns the project (not necessarily `<project-name>.vercel.app` — a name collision can force a suffixed domain, as happened here: `home-inventory-ecru.vercel.app`). It's read directly by `lib/email.ts` to build links inside verification/reset emails, so a stale value silently breaks those emails without erroring. Vercel bakes env vars into a deployment at build time, so a value change only takes effect after the next deploy.
+
+### Known gaps
+
+- **Production, Preview, and Development currently share the same Neon database branch and the same `AUTH_SECRET` value.** Local development (`npm run dev`) and any future Preview deployment read and write the exact same data as the real production site — there is no isolation. The intended fix is a separate Neon branch (Neon's branching is built for exactly this, and stays within the free tier) scoped to Preview/Development, with its own `AUTH_SECRET`; discussed but deliberately deferred, not yet built.
+- **Rate limiting is not configured in any environment** — `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` are unset, so `register`/`login`/`forgot-password` are unthrottled everywhere, including Production (`lib/rate-limit.ts` no-ops without them by design, so this fails open rather than breaking the app).
+- **Email deliverability is baseline** — `EMAIL_FROM` uses Resend's shared `onboarding@resend.dev` sender rather than a verified custom domain, so first-send mail may land in spam.
