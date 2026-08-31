@@ -193,6 +193,12 @@ Change password for the currently authenticated user — distinct from the publi
 - **Response**: `200 { message: "Password updated" }`
 - **Errors**: `400` current password incorrect (`field: "currentPassword"`) or new password too weak; `401` unauthenticated.
 
+### `PATCH /api/account/profile`
+Update the current user's display name and/or avatar image. Deletes the previous avatar Blob (if any) when replaced — same swap-and-delete pattern as `DELETE /api/items/[id]/attachments/[attId]`.
+- **Request body**: `{ name?: string, image?: string | null }`
+- **Response**: `200 { name: string | null, image: string | null }`
+- **Errors**: `400` invalid input; `401` unauthenticated.
+
 ## Common error shape
 
 All error responses use:

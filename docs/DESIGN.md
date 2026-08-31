@@ -23,7 +23,8 @@ This document covers screens, user flows, and layout. Data model lives in `MODUL
 | Item Create | `/items/new` | Add a new item. |
 | Item Edit | `/items/[id]/edit` | Edit an existing item. |
 | Categories | `/categories` | Add/rename/delete categories. |
-| Settings | `/settings` | Notification toggle, password change. |
+| Settings | `/settings` | Notification toggle. |
+| Profile | `/profile` | View/edit name, upload avatar, view email, change password. |
 
 ## Screen details
 
@@ -55,7 +56,7 @@ This document covers screens, user flows, and layout. Data model lives in `MODUL
 - On success: redirect to `/login` with a confirmation message.
 
 ### Dashboard
-- Header with app name and avatar; navigation to Items / Categories / Settings is a **persistent bottom tab bar** (Home / Items / Categories / Settings) shown on all four root screens. Item Detail and Item Create/Edit are pushed screens instead — a back-arrow header, no tab bar — since they're reached by drilling into a root screen, not tab destinations themselves.
+- Header with app name and avatar; tapping the avatar opens a small dropdown with **Profile** (navigates to `/profile`) and **Log out** — the only sign-out entry point in the app (falls back to the user's first initial on a plain circle if no image is set). Navigation to Items / Categories / Settings is a **persistent bottom tab bar** (Home / Items / Categories / Settings) shown on all four root screens. Item Detail, Item Create/Edit, and Profile are pushed screens instead — a back-arrow header, no tab bar — since they're reached by drilling into a root screen, not tab destinations themselves.
 - **Expiration banner** (top, only rendered if at least one half is enabled and the combined count > 0): a combined "N warranties + M AMCs expire this month" banner (either clause omitted if its count is 0) with an expandable, date-sorted list of the affected items — each row tagged "Warranty" or "AMC" and linking to `/items/[id]`. Warranty and AMC halves are gated independently by their own Settings toggle (`warrantyNotificationsEnabled`, `amcNotificationsEnabled`).
 - **Category count cards**: a grid of cards, one per category, showing category name and item count (mirrors the example: Electronics 12, Furniture 8, Tools 17, Kitchen 34, Storage 9). Tapping a card navigates to `/items?categoryId=...`.
 - Empty state (no items yet): a prompt to add the first item.
@@ -85,8 +86,13 @@ This document covers screens, user flows, and layout. Data model lives in `MODUL
 
 ### Settings
 - Two toggle switches: "Warranty expiration banner" (bound to `warrantyNotificationsEnabled`) and "AMC expiration banner" (bound to `amcNotificationsEnabled`), independently controlling each half of the Dashboard's combined expiration banner.
-- Change password form (current password, new password, confirm).
-- Log out action, below the account form — the only sign-out entry point in the app.
+
+### Profile
+- Pushed screen (back-arrow header to Dashboard), reached only by tapping the avatar on the Dashboard header — not a bottom-tab destination.
+- Avatar: circular preview, tap the shared camera/gallery control below it to replace (image-only, no PDF) — saves immediately on selection, no separate save button.
+- Name field: editable, explicit Save.
+- Email field: read-only display, no edit affordance.
+- Change password form (current password, new password) — moved here from Settings.
 
 ## Camera / gallery capture UX
 

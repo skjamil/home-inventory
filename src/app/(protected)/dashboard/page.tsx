@@ -3,19 +3,21 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { getExpiringEntries } from '@/lib/expiring-entries';
 import { ExpirationBanner } from '@/components/dashboard/ExpirationBanner';
+import { AvatarMenu } from '@/components/dashboard/AvatarMenu';
 import { CategoryIcon } from '@/components/CategoryIcon';
 
 export default async function DashboardPage() {
   const session = await auth();
   const userId = session!.user!.id!;
 
-  const [categories, entries] = await Promise.all([
+  const [categories, entries, user] = await Promise.all([
     db.category.findMany({
       where: { userId },
       include: { _count: { select: { items: true } } },
       orderBy: { createdAt: 'asc' },
     }),
     getExpiringEntries(userId),
+    db.user.findUniqueOrThrow({ where: { id: userId }, select: { name: true, image: true } }),
   ]);
 
   return (
@@ -28,7 +30,7 @@ export default async function DashboardPage() {
           </svg>
           <span className="font-display text-base font-bold">Home Inventory</span>
         </div>
-        <div className="h-7 w-7 rounded-full bg-border" />
+        <AvatarMenu name={user.name} image={user.image} />
       </div>
 
       <div className="mx-auto flex max-w-content flex-col gap-4 p-4">

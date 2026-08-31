@@ -1,9 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { signOut } from 'next-auth/react';
-import { Field } from '@/components/ui/Field';
-import { Button } from '@/components/ui/Button';
 import { PushNotificationToggle } from '@/components/settings/PushNotificationToggle';
 
 type NotificationField = 'warrantyNotificationsEnabled' | 'amcNotificationsEnabled' | 'emailNotificationsEnabled';
@@ -12,11 +9,6 @@ export default function SettingsPage() {
   const [notifOn, setNotifOn] = useState(true);
   const [amcNotifOn, setAmcNotifOn] = useState(true);
   const [emailNotifOn, setEmailNotifOn] = useState(true);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [message, setMessage] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     fetch('/api/settings')
@@ -36,26 +28,6 @@ export default function SettingsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ [field]: next }),
     });
-  }
-
-  async function updatePassword(e: React.FormEvent) {
-    e.preventDefault();
-    setMessage(null);
-    setSaving(true);
-    const res = await fetch('/api/account/password', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ currentPassword, newPassword }),
-    });
-    setSaving(false);
-    const body = await res.json().catch(() => null);
-    if (res.ok) {
-      setMessage('Password updated');
-      setCurrentPassword('');
-      setNewPassword('');
-    } else {
-      setMessage(body?.error?.message ?? 'Could not update password');
-    }
   }
 
   return (
@@ -111,27 +83,6 @@ export default function SettingsPage() {
 
           <PushNotificationToggle />
         </div>
-
-        <form onSubmit={updatePassword} className="flex flex-col gap-2.5">
-          <span className="text-[11px] font-bold uppercase tracking-wide text-text-secondary">Account</span>
-          {message && <div className="text-xs text-text-secondary">{message}</div>}
-          <Field label="Current password" type="password" required value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
-          <Field label="New password" type="password" required minLength={10} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="At least 10 characters" />
-          <Button type="submit" variant="ghost" disabled={saving}>
-            {saving ? 'Updating…' : 'Update password'}
-          </Button>
-        </form>
-
-        <Button
-          variant="danger"
-          disabled={loggingOut}
-          onClick={() => {
-            setLoggingOut(true);
-            signOut({ callbackUrl: '/login' });
-          }}
-        >
-          {loggingOut ? 'Logging out…' : 'Log out'}
-        </Button>
       </div>
     </div>
   );

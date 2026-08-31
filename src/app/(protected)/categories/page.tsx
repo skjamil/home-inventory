@@ -16,6 +16,8 @@ export default function CategoriesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [toast, setToast] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState<Category | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   function load() {
     fetch('/api/categories')
@@ -65,13 +67,20 @@ export default function CategoriesPage() {
     }
   }
 
-  async function deleteCategory(cat: Category) {
+  function requestDelete(cat: Category) {
     if (cat.itemCount > 0) {
       flash('Reassign or delete its items first');
       return;
     }
-    if (!window.confirm(`Delete "${cat.name}"?`)) return;
-    const res = await fetch(`/api/categories/${cat.id}`, { method: 'DELETE' });
+    setConfirmingDelete(cat);
+  }
+
+  async function confirmDelete() {
+    if (!confirmingDelete) return;
+    setDeleting(true);
+    const res = await fetch(`/api/categories/${confirmingDelete.id}`, { method: 'DELETE' });
+    setDeleting(false);
+    setConfirmingDelete(null);
     if (res.ok) {
       load();
       flash('Category deleted');
@@ -129,7 +138,7 @@ export default function CategoriesPage() {
                   <path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
                 </svg>
               </button>
-              <button onClick={() => deleteCategory(c)} aria-label="Delete">
+              <button onClick={() => requestDelete(c)} aria-label="Delete">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2">
                   <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
                 </svg>
@@ -146,6 +155,29 @@ export default function CategoriesPage() {
       {toast && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 rounded-lg bg-text px-4 py-2.5 text-xs font-semibold text-bg">
           {toast}
+        </div>
+      )}
+
+      {confirmingDelete && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 p-5">
+          <div className="flex w-full max-w-[340px] flex-col gap-3.5 rounded-2xl border border-border bg-surface p-5">
+            <span className="font-display text-base font-bold">Delete this category?</span>
+            <p className="text-sm text-text-secondary">
+              &quot;{confirmingDelete.name}&quot; will be removed. This can&apos;t be undone.
+            </p>
+            <div className="flex gap-2.5">
+              <button onClick={() => setConfirmingDelete(null)} className="h-11 flex-1 rounded-lg border border-border text-sm font-semibold">
+                Cancel
+              </button>
+              <button
+                disabled={deleting}
+                onClick={confirmDelete}
+                className="h-11 flex-1 rounded-lg border border-warn-text text-sm font-semibold text-warn-text"
+              >
+                {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

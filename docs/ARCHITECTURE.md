@@ -116,7 +116,7 @@ home-inventory/
 1. User selects/captures a file via `FileCaptureInput` (a single `<input type="file" capture="environment">` — camera on mobile, file picker on desktop).
 2. Client requests a signed upload token from `POST /api/upload`.
 3. Client uploads the file directly to Vercel Blob using that token.
-4. Client posts the resulting `blobUrl` + metadata to `POST /api/items/[id]/attachments` (or holds it in local form state until item creation, for new items) to create an `Attachment` row linked to the item.
+4. Client posts the resulting `blobUrl` + metadata to `POST /api/items/[id]/attachments` (or holds it in local form state until item creation, for new items) to create an `Attachment` row linked to the item. The Profile avatar follows the same steps 1-3 but a different step 4: `PATCH /api/account/profile` sets `blobUrl` directly on `User.image` (no `Attachment` row, since it's a user-level image rather than an item-level one), deleting the previous avatar Blob if one existed.
 
 ### Auth
 

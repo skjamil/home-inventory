@@ -45,19 +45,27 @@ Each module below owns a slice of the app: its pages/routes, its components, and
 
 ## Dashboard module
 
-**Responsibility**: at-a-glance category counts and the combined warranty/AMC expiration banner, kept live while open.
+**Responsibility**: at-a-glance category counts and the combined warranty/AMC expiration banner, kept live while open; the header's avatar menu is also the app's only sign-out entry point.
 
 - **Routes/pages**: `(protected)/dashboard`, `GET /api/notifications/expiring` (polled by the banner).
-- **Key components**: `CategoryCountCard`, `ExpirationBanner` (shows both warranty and AMC contract expirations, e.g. "3 items need attention (2 expiring soon, 1 expired)"; polls every 60s, paused while the tab is hidden).
+- **Key components**: `CategoryCountCard`, `ExpirationBanner` (shows both warranty and AMC contract expirations, e.g. "3 items need attention (2 expiring soon, 1 expired)"; polls every 60s, paused while the tab is hidden), `AvatarMenu` (header avatar — click opens a dropdown with Profile and Log out, the latter calling Auth.js's `signOut()`, see `docs/API.md`'s `/api/auth/[...nextauth]` entry).
 - **Data**: reads aggregated counts from `Item`/`Category`; expiring/expired warranties and AMC contracts via `lib/expiring-entries.ts`'s `getExpiringEntries()` (shared with the polling route), which itself uses `lib/expiry.ts`'s canonical thresholds (30/7/1 days) and reads `UserPreferences.warrantyNotificationsEnabled`/`amcNotificationsEnabled` to decide whether each half of the banner shows. See `docs/ARCHITECTURE.md`'s "Expiration notification" for the full picture including the daily email/push digest.
 
 ## Settings module
 
-**Responsibility**: toggle warranty/AMC/email/push expiration notifications on/off independently; account/password management; sign out (the only sign-out entry point in the app).
+**Responsibility**: toggle warranty/AMC/email/push expiration notifications on/off independently.
 
 - **Routes/pages**: `(protected)/settings`, `/api/settings`, `/api/push/subscribe`.
-- **Key components**: four notification controls (warranty banner, AMC banner, email digest — all account-wide `UserPreferences` toggles — plus `PushNotificationToggle`, a per-device browser-push enable/disable control backed by a `PushSubscription` row, not `UserPreferences`), password-change form, log out button (calls Auth.js's `signOut()`, see `docs/API.md`'s `/api/auth/[...nextauth]` entry).
+- **Key components**: four notification controls (warranty banner, AMC banner, email digest — all account-wide `UserPreferences` toggles — plus `PushNotificationToggle`, a per-device browser-push enable/disable control backed by a `PushSubscription` row, not `UserPreferences`).
 - **Data**: `UserPreferences` (warrantyNotificationsEnabled, amcNotificationsEnabled, emailNotificationsEnabled); `PushSubscription` (one row per subscribed browser/device).
+
+## Profile module
+
+**Responsibility**: view/edit the user's display name, upload/replace an avatar image, view (read-only) email, and change password — split out from Settings so account-identity concerns live separately from app preferences. Reached only via "Profile" in the Dashboard header's avatar dropdown, not a bottom tab.
+
+- **Routes/pages**: `(protected)/profile`, `PATCH /api/account/profile`, `PATCH /api/account/password`.
+- **Key components**: `ProfileForm` (avatar upload via `FileCaptureInput` with `type="AVATAR"`, editable name field with explicit save, read-only email field, password-change form).
+- **Data**: `User` (name, image — editable here; email read-only; passwordHash via the password route).
 
 ## Data model (Prisma schema)
 
@@ -67,6 +75,7 @@ model User {
   email                  String                  @unique
   passwordHash           String
   name                   String?
+  image                  String?
   emailVerified          DateTime?
   createdAt              DateTime                @default(now())
   items                  Item[]

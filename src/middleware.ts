@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // (checks auth() itself, returns 401). This middleware only bounces the
 // common case of a request with no session cookie at all, before it even
 // reaches a page/route — see docs/ARCHITECTURE.md's "Auth" data flow.
-const PROTECTED_PAGE_PREFIXES = ['/dashboard', '/items', '/categories', '/settings'];
+const PROTECTED_PAGE_PREFIXES = ['/dashboard', '/items', '/categories', '/settings', '/profile'];
 const SESSION_COOKIE_NAMES = ['authjs.session-token', '__Secure-authjs.session-token'];
 
 export function middleware(req: NextRequest) {
@@ -21,5 +21,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/items/:path*', '/categories/:path*', '/settings/:path*'],
+  matcher: ['/dashboard/:path*', '/items/:path*', '/categories/:path*', '/settings/:path*', '/profile/:path*'],
 };

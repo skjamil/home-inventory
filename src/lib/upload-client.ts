@@ -5,7 +5,7 @@ export interface UploadedFile {
   fileName: string;
   mimeType: string;
   sizeBytes: number;
-  type: 'PHOTO' | 'RECEIPT' | 'WARRANTY' | 'AMC_DOCUMENT';
+  type: 'PHOTO' | 'RECEIPT' | 'WARRANTY' | 'AMC_DOCUMENT' | 'AVATAR';
 }
 
 // Uploads directly from the browser to Vercel Blob via a signed token from

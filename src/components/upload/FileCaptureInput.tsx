@@ -35,7 +35,7 @@ export function FileCaptureInput({ type, multiple = false, value, onChange }: Pr
     }
   }
 
-  const accept = type === 'PHOTO' ? 'image/*' : 'image/*,application/pdf';
+  const accept = type === 'PHOTO' || type === 'AVATAR' ? 'image/*' : 'image/*,application/pdf';
 
   if (multiple) {
     return (
