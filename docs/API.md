@@ -91,7 +91,7 @@ Delete a category.
 
 ### `GET /api/items`
 List items, optionally filtered.
-- **Query params**: `categoryId?`, `search?` (matches name/serial number), `warrantyExpiringThisMonth?=1`
+- **Query params**: `categoryId?`, `search?` (matches name/serial number), `warrantyExpiringThisMonth?=1`, `warrantyExpired?=1` (warranty expiration strictly before today — an item expiring today doesn't count; ignored if `warrantyExpiringThisMonth` is also set)
 - **Response**: `200 [{ id, name, categoryId, category: {name}, purchaseDate, price, warrantyExpiration, serialNumber, location, createdAt }]`
 
 ### `POST /api/items`

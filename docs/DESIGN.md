@@ -62,7 +62,7 @@ This document covers screens, user flows, and layout. Data model lives in `MODUL
 - Empty state (no items yet): a prompt to add the first item.
 
 ### Item List
-- Filter bar: category **chips** (All, one per category, plus an "Expiring" chip) rather than a dropdown — a single tap beats a two-step dropdown on mobile — plus text search (matches name/serial number). Chips wrap onto additional lines rather than scrolling horizontally, so every category stays visible without a swipe. The "Expiring" chip is pre-selected when arriving from the dashboard banner.
+- Filter bar: category **chips** (All, one per category, plus "Expiring" and "Expired" chips) rather than a dropdown — a single tap beats a two-step dropdown on mobile — plus text search (matches name/serial number). Chips wrap onto additional lines rather than scrolling horizontally, so every category stays visible without a swipe. The "Expiring" chip is pre-selected when arriving from the dashboard banner. "Expiring" shows items with a warranty expiring this calendar month; "Expired" shows items whose warranty expiration has already passed. The two are mutually exclusive with each other and with a category selection.
 - List/grid of `ItemCard`s: item name, category badge, thumbnail (first photo if present), warranty expiration (highlighted if within 30 days), price.
 - "Add item" button (floating action button on mobile, standard button on desktop) linking to `/items/new`.
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { startOfMonth, endOfMonth } from 'date-fns';
+import { startOfMonth, endOfMonth, startOfDay } from 'date-fns';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { createItemSchema } from '@/lib/validations/item';
@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
   const categoryId = req.nextUrl.searchParams.get('categoryId') ?? undefined;
   const search = req.nextUrl.searchParams.get('search') ?? undefined;
   const expiringOnly = req.nextUrl.searchParams.get('warrantyExpiringThisMonth') === '1';
+  const expiredOnly = req.nextUrl.searchParams.get('warrantyExpired') === '1';
 
   const where: Prisma.ItemWhereInput = { userId: session.user.id };
   if (categoryId) where.categoryId = categoryId;
@@ -25,6 +26,8 @@ export async function GET(req: NextRequest) {
   if (expiringOnly) {
     const now = new Date();
     where.warrantyExpiration = { gte: startOfMonth(now), lte: endOfMonth(now) };
+  } else if (expiredOnly) {
+    where.warrantyExpiration = { lt: startOfDay(new Date()) };
   }
 
   const items = await db.item.findMany({

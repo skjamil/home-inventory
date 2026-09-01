@@ -23,6 +23,7 @@ export default function ItemsPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [activeCategoryId, setActiveCategoryId] = useState(searchParams.get('categoryId') ?? '');
   const [expiringOnly, setExpiringOnly] = useState(searchParams.get('warrantyExpiringThisMonth') === '1');
+  const [expiredOnly, setExpiredOnly] = useState(searchParams.get('warrantyExpired') === '1');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -38,10 +39,11 @@ export default function ItemsPage() {
     if (activeCategoryId) params.set('categoryId', activeCategoryId);
     if (search) params.set('search', search);
     if (expiringOnly) params.set('warrantyExpiringThisMonth', '1');
+    if (expiredOnly) params.set('warrantyExpired', '1');
     const res = await fetch(`/api/items?${params.toString()}`);
     setItems(await res.json());
     setLoading(false);
-  }, [activeCategoryId, search, expiringOnly]);
+  }, [activeCategoryId, search, expiringOnly, expiredOnly]);
 
   useEffect(() => {
     load();
@@ -68,16 +70,26 @@ export default function ItemsPage() {
         </div>
 
         <div className="flex flex-wrap gap-2 pb-0.5">
-          <Chip active={!activeCategoryId && !expiringOnly} onClick={() => { setActiveCategoryId(''); setExpiringOnly(false); }}>
+          <Chip
+            active={!activeCategoryId && !expiringOnly && !expiredOnly}
+            onClick={() => { setActiveCategoryId(''); setExpiringOnly(false); setExpiredOnly(false); }}
+          >
             All
           </Chip>
           {categories.map((c) => (
-            <Chip key={c.id} active={activeCategoryId === c.id} onClick={() => { setActiveCategoryId(c.id); setExpiringOnly(false); }}>
+            <Chip
+              key={c.id}
+              active={activeCategoryId === c.id}
+              onClick={() => { setActiveCategoryId(c.id); setExpiringOnly(false); setExpiredOnly(false); }}
+            >
               {c.name}
             </Chip>
           ))}
-          <Chip active={expiringOnly} onClick={() => { setExpiringOnly(true); setActiveCategoryId(''); }}>
+          <Chip active={expiringOnly} onClick={() => { setExpiringOnly(true); setExpiredOnly(false); setActiveCategoryId(''); }}>
             Expiring
+          </Chip>
+          <Chip active={expiredOnly} onClick={() => { setExpiredOnly(true); setExpiringOnly(false); setActiveCategoryId(''); }}>
+            Expired
           </Chip>
         </div>
 
