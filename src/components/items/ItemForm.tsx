@@ -257,12 +257,12 @@ export function ItemForm({ mode, itemId, initial }: ItemFormProps) {
         )}
       </label>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Purchase date" type="date" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} />
         <Field label="Price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" />
       </div>
       <Field label="Warranty expiration" type="date" value={warranty} onChange={(e) => setWarranty(e.target.value)} />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Serial number" value={serial} onChange={(e) => setSerial(e.target.value)} placeholder="Optional" />
         <Field label="Location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Office shelf" />
       </div>

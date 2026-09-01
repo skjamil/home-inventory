@@ -259,7 +259,7 @@ function ContractEditor({
         onChange={(e) => setDraft({ ...draft, provider: e.target.value })}
         placeholder="e.g. CoolCare Services"
       />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Cost" type="number" step="0.01" value={draft.cost} onChange={(e) => setDraft({ ...draft, cost: e.target.value })} placeholder="0.00" />
         <Field label="Start date" type="date" value={draft.startDate} onChange={(e) => setDraft({ ...draft, startDate: e.target.value })} />
       </div>
