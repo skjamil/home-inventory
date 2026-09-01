@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { formatDate } from '@/lib/format-date';
 
 interface Category {
   id: string;
@@ -62,7 +63,7 @@ export default function ItemsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name or serial number"
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-text-secondary"
+            className="flex-1 bg-transparent text-base outline-none placeholder:text-text-secondary sm:text-sm"
           />
         </div>
 
@@ -100,10 +101,10 @@ export default function ItemsPage() {
                 <span className="truncate text-sm font-semibold">{item.name}</span>
                 <span className="truncate text-[11.5px] text-text-secondary">
                   {item.category.name}
-                  {item.warrantyExpiration ? ` · warranty exp. ${new Date(item.warrantyExpiration).toLocaleDateString()}` : ' · no warranty on file'}
+                  {item.warrantyExpiration ? ` · warranty exp. ${formatDate(item.warrantyExpiration)}` : ' · no warranty on file'}
                 </span>
               </div>
-              {item.price != null && <span className="text-sm font-semibold">${Number(item.price).toLocaleString()}</span>}
+              {item.price != null && <span className="text-sm font-semibold">₹{Number(item.price).toLocaleString()}</span>}
             </Link>
           ))}
         </div>

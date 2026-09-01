@@ -17,6 +17,7 @@
 | Validation | zod | Shared request/response validation between client forms and API routes. |
 | Date handling | date-fns | Computing days-until-expiry (`src/lib/expiry.ts`) for the expiration notification system. |
 | Scheduling | Vercel Cron | Triggers the daily expiration-notification check (`/api/cron/expiry-notifications`) — Hobby tier caps this at once/day, so the whole notification design is a daily batch, not instantaneous. |
+| Receipt OCR | `tesseract.js`, client-side | Best-effort auto-fill of Name/Price/Purchase date from a captured receipt photo (`lib/receipt-scan.ts`). Chosen over a paid vision API (Claude/GPT-4o) or metered cloud OCR (AWS Textract, Google Document AI) to keep the feature at zero marginal cost — the tradeoff is lower accuracy and no true structured extraction, so results are regex/heuristic-parsed and always presented as a "please review" pre-fill, never trusted outright. Runs entirely in the browser (WASM in a Web Worker); no new API route, env var, or server compute. |
 
 ## System overview
 

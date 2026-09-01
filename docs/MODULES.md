@@ -24,7 +24,7 @@ Each module below owns a slice of the app: its pages/routes, its components, and
 **Responsibility**: item CRUD, filtering/browsing by category, item detail view.
 
 - **Routes/pages**: `(protected)/items`, `.../items/new`, `.../items/[id]`, `.../items/[id]/edit`, `/api/items`, `/api/items/[id]`.
-- **Key components**: `ItemForm` (shared create/edit), `ItemCard`, `ItemFilterBar`, `AmcContractsField` (repeatable AMC contract list, embedded in `ItemForm`).
+- **Key components**: `ItemForm` (shared create/edit — capturing a Receipt attachment triggers `lib/receipt-scan.ts`'s client-side OCR to best-effort pre-fill Name/Price/Purchase date, never overwriting a field already typed), `ItemCard`, `ItemFilterBar`, `AmcContractsField` (repeatable AMC contract list, embedded in `ItemForm`).
 - **Data**: `Item` (name, category, purchase date, price, warranty expiration, serial number, location, notes), plus its `AmcContract` history (see the AMC Contracts module below).
 
 ## AMC Contracts module

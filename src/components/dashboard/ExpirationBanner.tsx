@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { formatDate } from '@/lib/format-date';
 
 export interface ExpiringEntry {
   key: string;
@@ -95,7 +96,7 @@ export function ExpirationBanner({ initialEntries }: { initialEntries: ExpiringE
               </span>
               <span className="flex-shrink-0 text-text-secondary">
                 {entry.isExpired ? 'Expired ' : ''}
-                {entry.date ? new Date(entry.date).toLocaleDateString() : ''}
+                {entry.date ? formatDate(entry.date) : ''}
               </span>
             </Link>
           ))}

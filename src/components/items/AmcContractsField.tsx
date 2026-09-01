@@ -306,7 +306,7 @@ function ContractCard({ contract, onEdit, onDelete }: { contract: AmcContractDra
           </button>
         </div>
       </div>
-      {contract.cost && <div className="mt-1 text-xs text-text-secondary">${Number(contract.cost).toFixed(2)}</div>}
+      {contract.cost && <div className="mt-1 text-xs text-text-secondary">₹{Number(contract.cost).toFixed(2)}</div>}
       {contract.documentBlobUrl && (
         <a
           href={contract.documentBlobUrl}

@@ -100,7 +100,7 @@ export default function CategoriesPage() {
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addCategory()}
             placeholder="Add a category…"
-            className="h-11 flex-1 rounded-lg border border-border bg-surface px-3 text-sm"
+            className="h-11 flex-1 rounded-lg border border-border bg-surface px-3 text-base sm:text-sm"
           />
           <button onClick={addCategory} className="rounded-lg border border-border px-4 text-xs font-semibold">
             Add
@@ -110,7 +110,7 @@ export default function CategoriesPage() {
         <div className="flex flex-col gap-2.5">
           {categories.map((c) => (
             <div key={c.id} className="flex items-center gap-3 rounded-card border border-border bg-surface p-3.5">
-              <CategoryIcon icon={c.icon} />
+              <CategoryIcon icon={c.icon} className="h-5 w-5 flex-shrink-0" />
               <div className="flex min-w-0 flex-1 flex-col">
                 {editingId === c.id ? (
                   <input
@@ -119,10 +119,10 @@ export default function CategoriesPage() {
                     onChange={(e) => setEditValue(e.target.value)}
                     onBlur={() => saveRename(c.id)}
                     onKeyDown={(e) => e.key === 'Enter' && saveRename(c.id)}
-                    className="border-b border-dashed border-accent bg-transparent text-sm font-semibold outline-none"
+                    className="w-full min-w-0 border-b border-dashed border-accent bg-transparent text-base font-semibold outline-none sm:text-sm"
                   />
                 ) : (
-                  <span className="text-sm font-semibold">{c.name}</span>
+                  <span className="truncate text-sm font-semibold">{c.name}</span>
                 )}
                 <span className="text-xs text-text-secondary">{c.itemCount} items</span>
               </div>
@@ -132,13 +132,14 @@ export default function CategoriesPage() {
                   setEditValue(c.name);
                 }}
                 aria-label="Rename"
+                className="flex-shrink-0"
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2">
                   <path d="M12 20h9" />
                   <path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
                 </svg>
               </button>
-              <button onClick={() => requestDelete(c)} aria-label="Delete">
+              <button onClick={() => requestDelete(c)} aria-label="Delete" className="flex-shrink-0">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2">
                   <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
                 </svg>

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { getExpiryStatus } from '@/lib/expiry';
+import { formatDate } from '@/lib/format-date';
 import { DeleteItemButton } from '@/components/items/DeleteItemButton';
 
 export default async function ItemDetailPage({ params }: { params: { id: string } }) {
@@ -73,13 +74,13 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
           </div>
 
           <div className="flex-1">
-            <Row label="Purchase date" value={item.purchaseDate ? new Date(item.purchaseDate).toLocaleDateString() : '—'} first />
-            <Row label="Price" value={item.price != null ? `$${Number(item.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'} />
+            <Row label="Purchase date" value={item.purchaseDate ? formatDate(item.purchaseDate) : '—'} first />
+            <Row label="Price" value={item.price != null ? `₹${Number(item.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'} />
             <Row
               label="Warranty expiration"
               value={
                 item.warrantyExpiration
-                  ? `${new Date(item.warrantyExpiration).toLocaleDateString()}${warrantyStatus.isExpired ? ' (Expired)' : ''}`
+                  ? `${formatDate(item.warrantyExpiration)}${warrantyStatus.isExpired ? ' (Expired)' : ''}`
                   : '—'
               }
               warn={warrantyStatus.isExpiringSoon || warrantyStatus.isExpired}
@@ -103,11 +104,11 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-semibold">{c.provider}</span>
                     {c.cost != null && (
-                      <span className="text-sm font-semibold">${Number(c.cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      <span className="text-sm font-semibold">₹{Number(c.cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     )}
                   </div>
                   <div className={`text-xs ${warn ? 'text-warn-text' : 'text-text-secondary'}`}>
-                    {c.startDate ? new Date(c.startDate).toLocaleDateString() : '—'} – {c.endDate ? new Date(c.endDate).toLocaleDateString() : '—'}
+                    {c.startDate ? formatDate(c.startDate) : '—'} – {c.endDate ? formatDate(c.endDate) : '—'}
                     {status.isExpired ? ' (Expired)' : ''}
                   </div>
                   {c.documentBlobUrl && (

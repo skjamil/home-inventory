@@ -32,6 +32,7 @@ The app is open to anyone to sign up (self-service registration), but each accou
 - **Capture & attachments**: camera capture or gallery/file picker for photos, receipt, and warranty document, stored per item.
 - **Dashboard**: category counts at a glance, plus an in-app warranty-expiration banner.
 - **Notification preference**: enable/disable the warranty-expiration banner from Settings.
+- **Receipt scan auto-fill**: capturing a receipt photo runs free, client-side OCR (Tesseract.js) to best-effort pre-fill Name, Price, and Purchase date on the Item Create/Edit form — never overwrites a field the user already typed, and always surfaces a "please review" notice since the extraction is heuristic, not authoritative.
 
 ## Illustrative scenarios (from the original request)
 
@@ -52,7 +53,7 @@ To keep scope bounded, the following are explicitly **out of scope** for v1:
 - Multi-user accounts or household sharing/permissions.
 - Email or push notifications (v1 is in-app only).
 - A native mobile app (a mobile browser is sufficient; camera capture works via the web).
-- Barcode/receipt OCR scanning or automatic data extraction.
+- Barcode scanning.
 - Public self-service signup (the single account is seeded, not registered).
 - Data export/import, reporting, or insurance-integration features.
 

@@ -6,6 +6,7 @@ import { Field } from '@/components/ui/Field';
 import { Button } from '@/components/ui/Button';
 import { FileCaptureInput } from '@/components/upload/FileCaptureInput';
 import { AmcContractsField, type AmcContractDraft } from '@/components/items/AmcContractsField';
+import { scanReceipt } from '@/lib/receipt-scan';
 import type { UploadedFile } from '@/lib/upload-client';
 
 interface Category {
@@ -79,6 +80,8 @@ export function ItemForm({ mode, itemId, initial }: ItemFormProps) {
   );
 
   const [saving, setSaving] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanNotice, setScanNotice] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/categories')
@@ -131,6 +134,33 @@ export function ItemForm({ mode, itemId, initial }: ItemFormProps) {
       })
     );
     setList([...newList.filter((a) => a.id), ...linked]);
+  }
+
+  // Best-effort client-side OCR on a newly captured receipt — only fills
+  // fields the user hasn't already typed, never overwrites. See "Receipt
+  // scan auto-fill" in docs/DESIGN.md.
+  async function runReceiptScan(url: string) {
+    setScanning(true);
+    setScanNotice(null);
+    try {
+      const result = await scanReceipt(url);
+      let filledAny = false;
+      if (!name.trim() && result.name) {
+        setName(result.name);
+        filledAny = true;
+      }
+      if (!price && result.price != null) {
+        setPrice(String(result.price));
+        filledAny = true;
+      }
+      if (!purchaseDate && result.purchaseDate) {
+        setPurchaseDate(result.purchaseDate);
+        filledAny = true;
+      }
+      if (filledAny) setScanNotice('Auto-filled from the receipt — please review before saving.');
+    } finally {
+      setScanning(false);
+    }
   }
 
   const canSave = name.trim().length > 0 && categoryId.length > 0 && !saving;
@@ -191,7 +221,7 @@ export function ItemForm({ mode, itemId, initial }: ItemFormProps) {
               onChange={(e) => setNewCategoryName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCategory())}
               placeholder="New category name"
-              className="h-11 flex-1 rounded-lg border border-border bg-surface px-3 text-sm"
+              className="h-11 flex-1 rounded-lg border border-border bg-surface px-3 text-base sm:text-sm"
             />
             <button type="button" onClick={addCategory} className="rounded-lg border border-border px-3 text-xs font-semibold">
               Add
@@ -204,7 +234,7 @@ export function ItemForm({ mode, itemId, initial }: ItemFormProps) {
               if (e.target.value === '__add__') setAddingCategory(true);
               else setCategoryId(e.target.value);
             }}
-            className="h-11 w-full rounded-lg border border-border bg-surface px-3 text-sm"
+            className="h-11 w-full rounded-lg border border-border bg-surface px-3 text-base sm:text-sm"
           >
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
@@ -232,7 +262,7 @@ export function ItemForm({ mode, itemId, initial }: ItemFormProps) {
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
           placeholder="Optional"
-          className="w-full rounded-lg border border-border bg-surface p-3 text-sm placeholder:text-text-secondary"
+          className="w-full rounded-lg border border-border bg-surface p-3 text-base placeholder:text-text-secondary sm:text-sm"
         />
       </label>
 
@@ -244,7 +274,23 @@ export function ItemForm({ mode, itemId, initial }: ItemFormProps) {
       </div>
       <div className="flex flex-col gap-2">
         <span className="text-xs font-semibold text-text-secondary">Receipt</span>
-        <FileCaptureInput type="RECEIPT" value={receipt} onChange={(list) => handleAttachmentChange(list, receipt, setReceipt)} />
+        <FileCaptureInput
+          type="RECEIPT"
+          value={receipt}
+          onChange={(list) => {
+            handleAttachmentChange(list, receipt, setReceipt);
+            if (list[0] && list[0].blobUrl !== receipt[0]?.blobUrl) runReceiptScan(list[0].blobUrl);
+          }}
+        />
+        {scanning && <span className="text-xs text-text-secondary">Scanning receipt…</span>}
+        {scanNotice && (
+          <div className="flex items-center justify-between gap-2 rounded-lg bg-accent/10 p-2.5 text-xs text-accent">
+            <span>{scanNotice}</span>
+            <button type="button" onClick={() => setScanNotice(null)} aria-label="Dismiss">
+              ×
+            </button>
+          </div>
+        )}
       </div>
       <div className="flex flex-col gap-2">
         <span className="text-xs font-semibold text-text-secondary">Warranty document</span>
