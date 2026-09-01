@@ -49,6 +49,7 @@ export function ItemForm({ mode, itemId, initial }: ItemFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [addingCategory, setAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [categoryError, setCategoryError] = useState<string | null>(null);
 
   const [name, setName] = useState(initial?.name ?? '');
   const [categoryId, setCategoryId] = useState(initial?.categoryId ?? '');
@@ -95,6 +96,7 @@ export function ItemForm({ mode, itemId, initial }: ItemFormProps) {
   async function addCategory() {
     const trimmed = newCategoryName.trim();
     if (!trimmed) return;
+    setCategoryError(null);
     const res = await fetch('/api/categories', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -106,6 +108,9 @@ export function ItemForm({ mode, itemId, initial }: ItemFormProps) {
       setCategoryId(cat.id);
       setNewCategoryName('');
       setAddingCategory(false);
+    } else {
+      const body = await res.json().catch(() => null);
+      setCategoryError(body?.error?.message ?? 'Could not add category');
     }
   }
 
@@ -214,18 +219,24 @@ export function ItemForm({ mode, itemId, initial }: ItemFormProps) {
       <label className="flex flex-col gap-1.5">
         <span className="text-xs font-semibold text-text-secondary">Category</span>
         {addingCategory ? (
-          <div className="flex gap-2">
-            <input
-              autoFocus
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCategory())}
-              placeholder="New category name"
-              className="h-11 flex-1 rounded-lg border border-border bg-surface px-3 text-base sm:text-sm"
-            />
-            <button type="button" onClick={addCategory} className="rounded-lg border border-border px-3 text-xs font-semibold">
-              Add
-            </button>
+          <div className="flex flex-col gap-1">
+            <div className="flex gap-2">
+              <input
+                autoFocus
+                value={newCategoryName}
+                onChange={(e) => {
+                  setNewCategoryName(e.target.value);
+                  setCategoryError(null);
+                }}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCategory())}
+                placeholder="New category name"
+                className="h-11 flex-1 rounded-lg border border-border bg-surface px-3 text-base sm:text-sm"
+              />
+              <button type="button" onClick={addCategory} className="rounded-lg border border-border px-3 text-xs font-semibold">
+                Add
+              </button>
+            </div>
+            {categoryError && <span className="text-xs text-warn-text">{categoryError}</span>}
           </div>
         ) : (
           <select

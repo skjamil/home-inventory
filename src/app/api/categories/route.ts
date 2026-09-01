@@ -27,8 +27,8 @@ export async function POST(req: NextRequest) {
   const parsed = createCategorySchema.safeParse(body);
   if (!parsed.success) return jsonError(400, parsed.error.issues[0]?.message ?? 'Invalid input', 'name');
 
-  const existing = await db.category.findUnique({
-    where: { userId_name: { userId: session.user.id, name: parsed.data.name } },
+  const existing = await db.category.findFirst({
+    where: { userId: session.user.id, name: { equals: parsed.data.name, mode: 'insensitive' } },
   });
   if (existing) return jsonError(409, 'A category with this name already exists');
 

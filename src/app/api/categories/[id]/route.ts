@@ -16,8 +16,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!parsed.success) return jsonError(400, parsed.error.issues[0]?.message ?? 'Invalid input');
 
   if (parsed.data.name) {
-    const conflict = await db.category.findUnique({
-      where: { userId_name: { userId: session.user.id, name: parsed.data.name } },
+    const conflict = await db.category.findFirst({
+      where: { userId: session.user.id, name: { equals: parsed.data.name, mode: 'insensitive' } },
     });
     if (conflict && conflict.id !== existing.id) return jsonError(409, 'A category with this name already exists');
   }

@@ -74,13 +74,13 @@ List the current user's categories.
 Create a category.
 - **Request body**: `{ name: string, icon?: string }`
 - **Response**: `201 { id, name, icon }`
-- **Errors**: `400` invalid/empty name; `409` duplicate name for this user.
+- **Errors**: `400` invalid/empty name; `409` case-insensitive duplicate name for this user (e.g. "Kitchen" conflicts with "kitchen").
 
 ### `PATCH /api/categories/[id]`
 Rename a category / change its icon.
 - **Request body**: `{ name?: string, icon?: string }`
 - **Response**: `200 { id, name, icon }`
-- **Errors**: `404` not found or not owned by user; `409` name conflict.
+- **Errors**: `404` not found or not owned by user; `409` case-insensitive name conflict with another of this user's categories.
 
 ### `DELETE /api/categories/[id]`
 Delete a category.
