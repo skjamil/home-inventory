@@ -83,6 +83,7 @@ This document covers screens, user flows, and layout. Data model lives in `MODUL
 
 ### Categories
 - Simple list of existing categories with item counts, each with rename (inline edit) and delete (blocked with a message if items still reference it, prompting reassignment first) actions.
+- Rename uses inline edit with explicit save (checkmark) and cancel (X) icon buttons in place of the pencil/trash while editing — not save-on-blur. Enter saves, Escape cancels.
 - "Add category" input at the top.
 
 ### Settings

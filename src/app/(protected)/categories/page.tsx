@@ -51,20 +51,28 @@ export default function CategoriesPage() {
 
   async function saveRename(id: string) {
     const name = editValue.trim();
-    setEditingId(null);
-    if (!name) return;
+    if (!name) {
+      setEditingId(null);
+      return;
+    }
     const res = await fetch(`/api/categories/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name }),
     });
     if (res.ok) {
+      setEditingId(null);
       load();
       flash('Category renamed');
     } else {
       const body = await res.json().catch(() => null);
       flash(body?.error?.message ?? 'Could not rename category');
     }
+  }
+
+  function cancelRename() {
+    setEditingId(null);
+    setEditValue('');
   }
 
   function requestDelete(cat: Category) {
@@ -117,8 +125,10 @@ export default function CategoriesPage() {
                     autoFocus
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
-                    onBlur={() => saveRename(c.id)}
-                    onKeyDown={(e) => e.key === 'Enter' && saveRename(c.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') saveRename(c.id);
+                      if (e.key === 'Escape') cancelRename();
+                    }}
                     className="w-full min-w-0 border-b border-dashed border-accent bg-transparent text-base font-semibold outline-none sm:text-sm"
                   />
                 ) : (
@@ -126,24 +136,41 @@ export default function CategoriesPage() {
                 )}
                 <span className="text-xs text-text-secondary">{c.itemCount} items</span>
               </div>
-              <button
-                onClick={() => {
-                  setEditingId(c.id);
-                  setEditValue(c.name);
-                }}
-                aria-label="Rename"
-                className="flex-shrink-0"
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2">
-                  <path d="M12 20h9" />
-                  <path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
-                </svg>
-              </button>
-              <button onClick={() => requestDelete(c)} aria-label="Delete" className="flex-shrink-0">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2">
-                  <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
-                </svg>
-              </button>
+              {editingId === c.id ? (
+                <>
+                  <button onClick={() => saveRename(c.id)} aria-label="Save" className="flex-shrink-0">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  </button>
+                  <button onClick={cancelRename} aria-label="Cancel" className="flex-shrink-0">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      setEditingId(c.id);
+                      setEditValue(c.name);
+                    }}
+                    aria-label="Rename"
+                    className="flex-shrink-0"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2">
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
+                    </svg>
+                  </button>
+                  <button onClick={() => requestDelete(c)} aria-label="Delete" className="flex-shrink-0">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2">
+                      <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+                    </svg>
+                  </button>
+                </>
+              )}
             </div>
           ))}
         </div>
