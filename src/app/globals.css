@@ -45,3 +45,12 @@ body {
   background: var(--bg);
   color: var(--text);
 }
+
+/* iOS/WebKit gives the date input's internal value shadow element a fixed
+   min-width that ignores the input's own width/min-width, forcing it wider
+   than its container on narrow screens (and centering its text). Overriding
+   the shadow element directly is the only way to constrain it. */
+input[type='date']::-webkit-date-and-time-value {
+  min-width: 0;
+  text-align: left;
+}
